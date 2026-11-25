@@ -51,3 +51,8 @@
 .cvrk-box select, .cvrk-box input[type="text"] { box-sizing: border-box; max-width: 100%; }
 .cvrk-box .cvrk-point input[type="text"] { width: 7.5em; }
 .cvrk-box .cvrk-point label { margin-bottom: 4px; }
+/* Fas 5: övergång */
+.cvrk-transition .cvrk-step { margin-top: 1.6em; font-size: 1.15em; }
+.cvrk-transition .cvrk-step-done { color: #00450c; }
+.cvrk-transition ol { margin-left: 2em; }
+.cvrk-transition ol li { margin-bottom: 8px; }
