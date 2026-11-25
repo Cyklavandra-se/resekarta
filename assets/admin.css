@@ -1,0 +1,22 @@
+/* Resekarta – admin */
+.cvrk .cvrk-summary { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin: 12px 0; }
+.cvrk .cvrk-inline { display: inline; margin: 0; }
+.cvrk .cvrk-muted { color: #646970; }
+.cvrk .cvrk-warn { color: #b32d2e; }
+.cvrk .cvrk-yes { color: #007017; font-weight: 600; }
+.cvrk .cvrk-no { color: #b32d2e; font-weight: 600; }
+.cvrk .cvrk-reason { color: #646970; }
+.cvrk .cvrk-flag { color: #8a4b00; }
+.cvrk .cvrk-row-action td:first-child { box-shadow: inset 3px 0 0 #dba617; }
+.cvrk .cvrk-table td { vertical-align: top; }
+.cvrk .cvrk-table .cvrk-title { min-width: 220px; }
+.cvrk .cvrk-narrow { max-width: 900px; }
+.cvrk .cvrk-langs { white-space: nowrap; }
+.cvrk .cvrk-lang { display: inline-block; min-width: 1.8em; margin: 0 2px 2px 0; padding: 0 4px; border-radius: 3px; text-align: center; font-size: 11px; line-height: 18px; text-decoration: none; }
+.cvrk .cvrk-lang-yes { background: #d7f0dd; color: #00450c; }
+.cvrk .cvrk-lang-no { background: #f0f0f1; color: #a7aaad; }
+.cvrk .cvrk-filterform { margin: 8px 0 10px; clear: both; padding-top: 6px; }
+.cvrk .cvrk-details { margin: 0 0 8px; }
+.cvrk .cvrk-list { list-style: disc; margin-left: 20px; }
+.cvrk .cvrk-label { display: inline-block; min-width: 80px; }
+.cvrk .subsubsub { float: none; margin-bottom: 4px; }

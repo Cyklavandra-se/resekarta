@@ -1,0 +1,20 @@
+<wpml-config>
+	<!-- Resekarta: en uppsättning destinationer för alla språk, och resornas fält finns bara på den svenska sidan. -->
+	<taxonomies>
+		<taxonomy translate="0">cvrk_destination</taxonomy>
+	</taxonomies>
+	<custom-fields>
+		<custom-field action="ignore">cvrk_trip</custom-field>
+		<custom-field action="ignore">cvrk_listed</custom-field>
+		<custom-field action="ignore">cvrk_category</custom-field>
+		<custom-field action="ignore">cvrk_category_auto</custom-field>
+		<custom-field action="ignore">cvrk_category_sheet</custom-field>
+		<custom-field action="ignore">cvrk_visibility</custom-field>
+		<custom-field action="ignore">cvrk_destination</custom-field>
+		<custom-field action="ignore">cvrk_lat</custom-field>
+		<custom-field action="ignore">cvrk_lng</custom-field>
+		<custom-field action="ignore">cvrk_check</custom-field>
+		<custom-field action="ignore">cvrk_first_seen</custom-field>
+		<custom-field action="ignore">cvrk_last_seen</custom-field>
+	</custom-fields>
+</wpml-config>

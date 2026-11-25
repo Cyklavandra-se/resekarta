@@ -1,0 +1,91 @@
+<?php
+/**
+ * Settings page.
+ *
+ * @package CV_Resekarta
+ */
+
+namespace CV_Resekarta\Admin;
+
+use CV_Resekarta\Settings;
+use CV_Resekarta\Trips;
+
+defined( 'ABSPATH' ) || exit;
+
+$cvrk_s = Settings::all();
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$cvrk_msg = isset( $_GET['cvrk_msg'] ) ? sanitize_key( wp_unslash( $_GET['cvrk_msg'] ) ) : '';
+?>
+<div class="wrap cvrk">
+	<h1>Resekarta – inställningar</h1>
+	<?php
+	if ( 'saved' === $cvrk_msg ) {
+		Admin::notice( 'Inställningarna är sparade.' );
+	}
+	?>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<?php wp_nonce_field( 'cvrk_save_settings' ); ?>
+		<input type="hidden" name="action" value="cvrk_save_settings">
+		<table class="form-table" role="presentation">
+			<tr>
+				<th scope="row"><label for="cvrk-notify">Mejl för notiser</label></th>
+				<td>
+					<input type="text" class="regular-text" id="cvrk-notify" name="cvrk[notify_email]" value="<?php echo esc_attr( $cvrk_s['notify_email'] ); ?>">
+					<p class="description">Hit skickas mejl om nya resor och fel i nattkörningen. Flera adresser: skilj med komma.</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="cvrk-contact">Kontaktadress för geokodning</label></th>
+				<td>
+					<input type="email" class="regular-text" id="cvrk-contact" name="cvrk[geocode_contact]" value="<?php echo esc_attr( $cvrk_s['geocode_contact'] ); ?>">
+					<p class="description">OpenStreetMap vill veta vem som slår upp platser. Adressen skickas med varje uppslag.</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="cvrk-geocoder">Geokodning</label></th>
+				<td>
+					<select id="cvrk-geocoder" name="cvrk[geocoder]">
+						<?php foreach ( Settings::GEOCODERS as $cvrk_key => $cvrk_label ) : ?>
+							<option value="<?php echo esc_attr( $cvrk_key ); ?>" <?php selected( $cvrk_s['geocoder'], $cvrk_key ); ?>><?php echo esc_html( $cvrk_label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="cvrk-style">Standard kartstil</label></th>
+				<td>
+					<select id="cvrk-style" name="cvrk[map_style]">
+						<?php foreach ( Settings::MAP_STYLES as $cvrk_key => $cvrk_label ) : ?>
+							<option value="<?php echo esc_attr( $cvrk_key ); ?>" <?php selected( $cvrk_s['map_style'], $cvrk_key ); ?>><?php echo esc_html( $cvrk_label ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row">Listsidor</th>
+				<td>
+					<?php foreach ( Trips::CATEGORIES as $cvrk_key => $cvrk_label ) : ?>
+						<p>
+							<label>
+								<span class="cvrk-label"><?php echo esc_html( $cvrk_label ); ?></span>
+								<input type="text" class="regular-text code" name="cvrk[list_pages][<?php echo esc_attr( $cvrk_key ); ?>]" value="<?php echo esc_attr( isset( $cvrk_s['list_pages'][ $cvrk_key ] ) ? $cvrk_s['list_pages'][ $cvrk_key ] : '' ); ?>">
+							</label>
+						</p>
+					<?php endforeach; ?>
+					<p class="description">Sidorna där resorna listas. Resor som står på listorna kommer med på kartan. En resa på både cykel- och vandringslistan räknas som Cykel.</p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row">Avinstallation</th>
+				<td>
+					<label>
+						<input type="checkbox" name="cvrk[delete_on_uninstall]" value="1" <?php checked( $cvrk_s['delete_on_uninstall'] ); ?>>
+						Ta bort all data (resornas fält, destinationer, regler och inställningar) när tillägget raderas
+					</label>
+					<p class="description">Lämna urkryssad om du inte är säker. Då finns allt kvar om tillägget installeras igen.</p>
+				</td>
+			</tr>
+		</table>
+		<?php submit_button( 'Spara inställningar' ); ?>
+	</form>
+</div>
