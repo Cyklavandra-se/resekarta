@@ -17,6 +17,7 @@ $cvrk_dests = Destinations::all();
 ?>
 <div class="wrap cvrk">
 	<h1>Resekarta – destinationsregler</h1>
+	<?php Admin::tabs(); ?>
 	<p>När en ny resa saknar destination prövas reglerna uppifrån. Den första regel vars nyckelord finns i resans svenska namn (stora och små bokstäver spelar ingen roll) avgör destinationen.</p>
 	<table class="widefat striped cvrk-table cvrk-narrow">
 		<thead><tr><th>#</th><th>Nyckelord</th><th>Destination</th></tr></thead>

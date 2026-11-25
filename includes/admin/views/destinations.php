@@ -24,6 +24,7 @@ $cvrk_codes  = array_unique(
 ?>
 <div class="wrap cvrk">
 	<h1>Resekarta – destinationer</h1>
+	<?php Admin::tabs(); ?>
 	<p><?php echo count( $cvrk_dests ); ?> destinationer. Ett tomt namn på ett språk betyder att det svenska namnet används på kartan.</p>
 	<table class="widefat striped cvrk-table">
 		<thead>

@@ -16,7 +16,7 @@ for f in $(find resekarta.php uninstall.php includes -name '*.php'); do
 done
 
 rm -rf build && mkdir -p build/resekarta/data
-cp resekarta.php uninstall.php wpml-config.xml CHANGELOG.md build/resekarta/
+cp resekarta.php uninstall.php cyklavandra-meny.php wpml-config.xml CHANGELOG.md build/resekarta/
 cp -r includes assets build/resekarta/
 cp data/destinationer.csv data/destinationsregler.csv data/resor.csv data/destinationsnamn.json build/resekarta/data/
 (cd build && zip -qr ../resekarta.zip resekarta)

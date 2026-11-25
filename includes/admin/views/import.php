@@ -44,6 +44,7 @@ $cvrk_list = function ( array $items, $title ) {
 ?>
 <div class="wrap cvrk">
 	<h1>Resekarta – import från kalkylarket</h1>
+	<?php Admin::tabs(); ?>
 	<?php
 	if ( 'imported' === $cvrk_msg ) {
 		Admin::notice( 'Importen är klar. Se rapporten nedan.' );

@@ -81,6 +81,7 @@ $cvrk_scan = get_option( List_Scanner::LAST_SCAN_OPTION );
 ?>
 <div class="wrap cvrk">
 	<h1 class="wp-heading-inline">Resekarta – översikt</h1>
+	<?php Admin::tabs(); ?>
 
 	<?php
 	if ( 'scanned' === $cvrk_msg ) {

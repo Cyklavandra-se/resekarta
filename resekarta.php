@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Resekarta
  * Description:       Interaktiv karta över Cykla & Vandras resor på alla språk
- * Version:           0.1.0
+ * Version:           0.1.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Cykla & Vandra
@@ -16,10 +16,11 @@ namespace CV_Resekarta;
 
 defined( 'ABSPATH' ) || exit;
 
-const VERSION     = '0.1.0';
+const VERSION     = '0.1.1';
 const PLUGIN_FILE = __FILE__;
 const PLUGIN_DIR  = __DIR__;
 
+require_once __DIR__ . '/cyklavandra-meny.php'; // Gemensam meny Cykla&Vandra, samma fil i alla våra tillägg.
 require_once __DIR__ . '/includes/class-settings.php';
 require_once __DIR__ . '/includes/class-languages.php';
 require_once __DIR__ . '/includes/class-tags.php';

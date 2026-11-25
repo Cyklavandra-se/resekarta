@@ -1,5 +1,9 @@
 # Ändringslogg – Resekarta
 
+## 0.1.1
+- Resekarta ligger nu i den gemensamma menyn **Cykla&Vandra**, med ett kort på översiktssidan, som de andra egna tilläggen.
+- En rad i menyn; Destinationer, Destinationsregler, Inställningar och Import nås via flikar överst på sidan.
+
 ## 0.1.0 – fas 1: grund
 - Menyn **Resekarta** i adminpanelen: Översikt, Destinationer, Destinationsregler, Inställningar, Import.
 - Resorna hittas via de tre listsidorna (med sidnumrering). En resa på både cykel- och vandringslistan räknas som Cykel.

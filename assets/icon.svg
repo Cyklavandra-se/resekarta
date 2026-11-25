@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2f9e6a"/>
+      <stop offset="1" stop-color="#1b6b4f"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="url(#bg)"/>
+  <!-- vikt karta i tre fält -->
+  <path d="M40 76 L96 58 L160 78 L216 60 L216 190 L160 208 L96 188 L40 206 Z" fill="#ffffff"/>
+  <path d="M96 58 L160 78 L160 208 L96 188 Z" fill="#EEF3EF"/>
+  <path d="M96 58 V188 M160 78 V208" stroke="#cfd9dc" stroke-width="3"/>
+  <!-- land och vatten -->
+  <path d="M40 150 C70 140 82 162 106 150 C130 138 140 158 166 146 C190 136 200 150 216 144 L216 190 L160 208 L96 188 L40 206 Z" fill="#bfe3f0"/>
+  <!-- streckad rutt -->
+  <path d="M70 168 C90 130 120 150 136 118 C150 92 176 104 188 92" fill="none" stroke="#c8692c" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 11"/>
+  <!-- kartnålar -->
+  <g>
+    <path d="M70 172 c-13 -17 -20 -27 -20 -37 a20 20 0 0 1 40 0 c0 10 -7 20 -20 37 z" fill="#2f9e6a"/>
+    <circle cx="70" cy="135" r="7" fill="#ffffff"/>
+  </g>
+  <g>
+    <path d="M188 100 c-15 -20 -24 -32 -24 -44 a24 24 0 0 1 48 0 c0 12 -9 24 -24 44 z" fill="#f6b73c"/>
+    <circle cx="188" cy="56" r="9" fill="#ffffff"/>
+  </g>
+</svg>

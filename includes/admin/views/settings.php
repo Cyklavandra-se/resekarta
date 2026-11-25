@@ -18,6 +18,7 @@ $cvrk_msg = isset( $_GET['cvrk_msg'] ) ? sanitize_key( wp_unslash( $_GET['cvrk_m
 ?>
 <div class="wrap cvrk">
 	<h1>Resekarta – inställningar</h1>
+	<?php Admin::tabs(); ?>
 	<?php
 	if ( 'saved' === $cvrk_msg ) {
 		Admin::notice( 'Inställningarna är sparade.' );
