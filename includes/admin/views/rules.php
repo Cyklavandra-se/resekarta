@@ -1,6 +1,6 @@
 <?php
 /**
- * Destination rules (read-only in phase 1).
+ * Destination rules: an editable list in order (drag to reorder).
  *
  * @package CV_Resekarta
  */
@@ -14,36 +14,64 @@ defined( 'ABSPATH' ) || exit;
 
 $cvrk_rules = Rules::all();
 $cvrk_dests = Destinations::all();
+// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+$cvrk_msg = isset( $_GET['cvrk_msg'] ) ? sanitize_key( wp_unslash( $_GET['cvrk_msg'] ) ) : '';
+
+/**
+ * One rule row.
+ */
+$cvrk_row = function ( $i, $keyword, $destination ) {
+	?>
+	<tr>
+		<td class="cvrk-handle" title="Dra för att flytta"><span class="dashicons dashicons-menu" aria-hidden="true"></span><span class="cvrk-rule-nr"><?php echo (int) $i + 1; ?></span></td>
+		<td><input type="text" class="cvrk-rule-keyword regular-text" name="cvrk_rules[<?php echo (int) $i; ?>][keyword]" value="<?php echo esc_attr( $keyword ); ?>" aria-label="Nyckelord"></td>
+		<td><?php Admin::destination_select( 'cvrk_rules[' . (int) $i . '][destination]', $destination ); ?></td>
+		<td class="cvrk-rule-actions">
+			<button type="button" class="button-link cvrk-rule-up" aria-label="Flytta upp">▲</button>
+			<button type="button" class="button-link cvrk-rule-down" aria-label="Flytta ned">▼</button>
+			<button type="button" class="button-link cvrk-rule-remove cvrk-delete">Ta bort</button>
+		</td>
+	</tr>
+	<?php
+};
 ?>
 <div class="wrap cvrk">
 	<h1>Resekarta – destinationsregler</h1>
 	<?php Admin::tabs(); ?>
-	<p>När en ny resa saknar destination prövas reglerna uppifrån. Den första regel vars nyckelord finns i resans svenska namn (stora och små bokstäver spelar ingen roll) avgör destinationen.</p>
-	<table class="widefat striped cvrk-table cvrk-narrow">
-		<thead><tr><th>#</th><th>Nyckelord</th><th>Destination</th></tr></thead>
-		<tbody>
-			<?php if ( ! $cvrk_rules ) : ?>
-				<tr><td colspan="3">Inga regler ännu.</td></tr>
-			<?php endif; ?>
-			<?php foreach ( $cvrk_rules as $cvrk_i => $cvrk_rule ) : ?>
-				<tr>
-					<td><?php echo (int) $cvrk_i + 1; ?></td>
-					<td><?php echo esc_html( $cvrk_rule['keyword'] ); ?></td>
-					<td>
-						<?php
-						if ( isset( $cvrk_dests[ $cvrk_rule['destination'] ] ) ) {
-							echo esc_html( $cvrk_dests[ $cvrk_rule['destination'] ]['name'] );
-							if ( ! Destinations::has_point( $cvrk_dests[ $cvrk_rule['destination'] ] ) ) {
-								echo ' <span class="cvrk-warn">(saknar koordinater)</span>';
-							}
-						} else {
-							echo '<span class="cvrk-warn">Destinationen finns inte längre</span>';
-						}
-						?>
-					</td>
-				</tr>
-			<?php endforeach; ?>
-		</tbody>
-	</table>
-	<p class="cvrk-muted">Att ändra reglerna och deras ordning kommer i nästa version.</p>
+	<?php
+	if ( 'saved' === $cvrk_msg ) {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		Admin::notice( sprintf( 'Reglerna är sparade (%d st).', isset( $_GET['antal'] ) ? (int) $_GET['antal'] : count( $cvrk_rules ) ) );
+	}
+	?>
+	<p>När en ny resa saknar destination prövas reglerna uppifrån. Den första regel vars nyckelord finns i resans svenska namn avgör destinationen (stora och små bokstäver spelar ingen roll). Dra i <span class="dashicons dashicons-menu"></span> för att ändra ordningen. Rader utan nyckelord eller destination tas bort när du sparar.</p>
+
+	<p class="cvrk-rule-tester">
+		<label for="cvrk-rule-test"><strong>Prova ett namn:</strong></label>
+		<input type="text" id="cvrk-rule-test" class="regular-text" placeholder="t.ex. Cykla längs Donau från källan">
+		<span id="cvrk-rule-test-result" class="cvrk-muted" aria-live="polite"></span>
+	</p>
+
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<?php wp_nonce_field( 'cvrk_save_rules' ); ?>
+		<input type="hidden" name="action" value="cvrk_save_rules">
+		<table class="widefat striped cvrk-table cvrk-narrow" id="cvrk-rules">
+			<thead><tr><th>#</th><th>Nyckelord i resans namn</th><th>Destination</th><th></th></tr></thead>
+			<tbody>
+				<?php
+				foreach ( $cvrk_rules as $cvrk_i => $cvrk_rule ) {
+					$cvrk_row( $cvrk_i, $cvrk_rule['keyword'], $cvrk_rule['destination'] );
+				}
+				?>
+			</tbody>
+		</table>
+		<p><button type="button" class="button cvrk-rule-add">+ Lägg till regel</button></p>
+		<?php submit_button( 'Spara reglerna' ); ?>
+	</form>
+	<template id="cvrk-rule-template">
+		<?php $cvrk_row( 0, '', 0 ); ?>
+	</template>
+	<?php if ( ! $cvrk_dests ) : ?>
+		<p class="cvrk-warn">Det finns inga destinationer ännu – lägg till dem under fliken Destinationer.</p>
+	<?php endif; ?>
 </div>

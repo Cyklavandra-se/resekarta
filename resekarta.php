@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Cykla & Vandra – Resekarta
  * Description:       Interaktiv karta över Cykla & Vandras resor på alla språk
- * Version:           0.2.0
+ * Version:           0.3.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Cykla & Vandra
@@ -28,7 +28,7 @@ if ( defined( __NAMESPACE__ . '\\VERSION' ) ) {
 	return;
 }
 
-const VERSION     = '0.2.0';
+const VERSION     = '0.3.0';
 const PLUGIN_FILE = __FILE__;
 const PLUGIN_DIR  = __DIR__;
 
@@ -52,6 +52,7 @@ require_once __DIR__ . '/includes/updater.php'; // Uppdateringar via GitHub-rele
 
 if ( is_admin() ) {
 	require_once __DIR__ . '/includes/admin/class-admin.php';
+	require_once __DIR__ . '/includes/admin/class-trip-box.php';
 }
 
 register_activation_hook( __FILE__, array( Plugin::class, 'activate' ) );

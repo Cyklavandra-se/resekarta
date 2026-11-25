@@ -255,6 +255,71 @@ final class Destinations {
 		return ( abs( $f ) <= $max ) ? $f : null;
 	}
 
+	/**
+	 * Rename. Returns true or WP_Error (empty name, or another destination has the name).
+	 */
+	public static function rename( $id, $name ) {
+		$name = sanitize_text_field( $name );
+		if ( '' === $name ) {
+			return new \WP_Error( 'cvrk_empty', 'Destinationen måste ha ett namn.' );
+		}
+		$other = self::find_by_name( $name );
+		if ( $other && $other !== (int) $id ) {
+			return new \WP_Error( 'cvrk_exists', 'Det finns redan en destination som heter ' . $name . '.' );
+		}
+		$current = self::get( $id );
+		if ( $current && $current['name'] === $name ) {
+			return true;
+		}
+		$res = wp_update_term( (int) $id, self::TAXONOMY, array( 'name' => $name ) );
+		return is_wp_error( $res ) ? $res : true;
+	}
+
+	/**
+	 * Delete a destination. Trips that used it lose their destination; rules pointing to it
+	 * are removed. Returns array( 'trips' => n, 'rules' => n ) or WP_Error.
+	 */
+	public static function delete( $id ) {
+		$id = (int) $id;
+		if ( ! self::get( $id ) ) {
+			return new \WP_Error( 'cvrk_missing', 'Destinationen finns inte.' );
+		}
+		$trips = get_posts(
+			array(
+				'post_type'        => 'page',
+				'post_status'      => 'any',
+				'posts_per_page'   => -1,
+				'fields'           => 'ids',
+				'meta_key'         => Trips::META_DESTINATION, // phpcs:ignore WordPress.DB.SlowDBQuery
+				'meta_value'       => (string) $id,            // phpcs:ignore WordPress.DB.SlowDBQuery
+				'suppress_filters' => true,
+			)
+		);
+		foreach ( $trips as $trip_id ) {
+			delete_post_meta( $trip_id, Trips::META_DESTINATION );
+		}
+		$rules = Rules::all();
+		$keep  = array_values(
+			array_filter(
+				$rules,
+				function ( $r ) use ( $id ) {
+					return (int) $r['destination'] !== $id;
+				}
+			)
+		);
+		if ( count( $keep ) !== count( $rules ) ) {
+			Rules::save( $keep );
+		}
+		$res = wp_delete_term( $id, self::TAXONOMY );
+		if ( is_wp_error( $res ) ) {
+			return $res;
+		}
+		return array(
+			'trips' => count( $trips ),
+			'rules' => count( $rules ) - count( $keep ),
+		);
+	}
+
 	/** Number of trips per destination: term ID => count. */
 	public static function trip_counts() {
 		global $wpdb;

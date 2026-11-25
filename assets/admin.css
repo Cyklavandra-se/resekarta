@@ -24,3 +24,30 @@
 .cvrk .cvrk-preview { display: block; width: 100%; height: 75vh; min-height: 480px; max-height: 750px; border: 1px solid #c3c4c7; background: #fff; }
 .cvrk .cvrk-compare { max-width: 1100px; margin: 6px 0 12px; }
 .cvrk details > summary { cursor: pointer; margin: 4px 0; }
+/* Fas 3: redigering */
+.cvrk .cvrk-picker { height: 240px; margin: 8px 0 4px; border: 1px solid #c3c4c7; border-radius: 4px; }
+.cvrk-dest-form .cvrk-picker { height: 360px; max-width: 640px; }
+.cvrk-box .cvrk-picker { height: 200px; }
+.cvrk-box .cvrk-point { border: 0; margin: 0 0 6px; padding: 0; }
+.cvrk-box .cvrk-point label { display: inline-block; margin-right: 6px; }
+.cvrk-box .cvrk-status { margin-top: 0; }
+.cvrk-box .cvrk-check { background: #fcf9e8; border-left: 4px solid #dba617; padding: 4px 8px 8px; margin-bottom: 10px; }
+.cvrk-box select.widefat, .cvrk-box .cvrk-dest-select { width: 100%; max-width: 100%; }
+.cvrk .cvrk-qe { padding: 8px 4px; }
+.cvrk .cvrk-qe-fields { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 8px 0; }
+.cvrk .cvrk-qe-fields label { display: inline-flex; gap: 6px; align-items: center; }
+.cvrk .cvrk-qe-fields .cvrk-dest-select { max-width: 260px; }
+.cvrk .cvrk-qe-buttons { display: flex; gap: 8px; align-items: center; margin: 0; }
+.cvrk .cvrk-qe-buttons .spinner { float: none; margin: 0; }
+.cvrk tr.cvrk-saved td { background: #edfaef !important; transition: background 1s; }
+.cvrk .cvrk-handle { cursor: move; white-space: nowrap; width: 60px; color: #646970; }
+.cvrk .cvrk-handle .dashicons { vertical-align: middle; }
+.cvrk .cvrk-rule-actions { white-space: nowrap; }
+.cvrk .cvrk-rule-actions .button-link { margin-right: 6px; text-decoration: none; }
+.cvrk .cvrk-delete { color: #b32d2e; }
+.cvrk .cvrk-rule-tester { background: #fff; border: 1px solid #c3c4c7; padding: 8px 12px; max-width: 900px; }
+.cvrk #cvrk-rules .ui-sortable-helper { display: table; background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.15); }
+.cvrk .cvrk-delete-dest { margin-top: 8px; }
+.cvrk-box select, .cvrk-box input[type="text"] { box-sizing: border-box; max-width: 100%; }
+.cvrk-box .cvrk-point input[type="text"] { width: 7.5em; }
+.cvrk-box .cvrk-point label { margin-bottom: 4px; }

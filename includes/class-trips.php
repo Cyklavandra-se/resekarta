@@ -169,6 +169,79 @@ final class Trips {
 		return is_wp_error( $slugs ) ? array() : Tags::normalize( $slugs );
 	}
 
+	/**
+	 * Update a trip's editable fields. Only the keys present in $data are changed.
+	 *
+	 * @param int   $post_id
+	 * @param array $data category ('' = auto), visibility, destination (term ID, 0 = none),
+	 *                    lat + lng (own point, both '' = remove), check_done (true = clear the flag).
+	 * @return array|\WP_Error Names of the changed fields, or an error (nothing is changed then).
+	 */
+	public static function update( $post_id, array $data ) {
+		$post_id = (int) $post_id;
+		$trip    = self::get( $post_id );
+		$changes = array();
+		$errors  = array();
+
+		if ( array_key_exists( 'category', $data ) ) {
+			$cat = sanitize_key( (string) $data['category'] );
+			if ( '' !== $cat && ! isset( self::CATEGORIES[ $cat ] ) ) {
+				$errors[] = 'Okänd kategori.';
+			} elseif ( $cat !== $trip['category_manual'] ) {
+				$changes[ self::META_CATEGORY ] = $cat;
+			}
+		}
+		if ( array_key_exists( 'visibility', $data ) ) {
+			$vis = sanitize_key( (string) $data['visibility'] );
+			if ( ! isset( self::VISIBILITIES[ $vis ] ) ) {
+				$errors[] = 'Okänd synlighet.';
+			} elseif ( $vis !== $trip['visibility'] ) {
+				$changes[ self::META_VISIBILITY ] = $vis;
+			}
+		}
+		if ( array_key_exists( 'destination', $data ) ) {
+			$dest = (int) $data['destination'];
+			if ( $dest && ! Destinations::get( $dest ) ) {
+				$errors[] = 'Destinationen finns inte.';
+			} elseif ( $dest !== $trip['destination'] ) {
+				$changes[ self::META_DESTINATION ] = $dest ? $dest : '';
+			}
+		}
+		if ( array_key_exists( 'lat', $data ) || array_key_exists( 'lng', $data ) ) {
+			$raw_lat = trim( (string) ( isset( $data['lat'] ) ? $data['lat'] : '' ) );
+			$raw_lng = trim( (string) ( isset( $data['lng'] ) ? $data['lng'] : '' ) );
+			if ( '' === $raw_lat && '' === $raw_lng ) {
+				if ( $trip['own_point'] ) {
+					$changes[ self::META_LAT ] = '';
+					$changes[ self::META_LNG ] = '';
+				}
+			} else {
+				$lat = Destinations::coordinate( $raw_lat, 90 );
+				$lng = Destinations::coordinate( $raw_lng, 180 );
+				if ( null === $lat || null === $lng ) {
+					$errors[] = 'Egen punkt: fyll i både Lat (−90 till 90) och Lng (−180 till 180), t.ex. 42.5063 och 1.5218.';
+				} elseif ( array( $lat, $lng ) !== $trip['own_point'] ) {
+					$changes[ self::META_LAT ] = (string) $lat;
+					$changes[ self::META_LNG ] = (string) $lng;
+				}
+			}
+		}
+		if ( ! empty( $data['check_done'] ) && '' !== $trip['check'] ) {
+			$changes[ self::META_CHECK ] = '';
+		}
+
+		if ( $errors ) {
+			return new \WP_Error( 'cvrk_invalid', implode( ' ', $errors ) );
+		}
+		foreach ( $changes as $key => $value ) {
+			self::set_meta( $post_id, $key, $value );
+		}
+		if ( $changes ) {
+			do_action( 'cvrk_trips_changed', 'edit' );
+		}
+		return array_keys( $changes );
+	}
+
 	public static function set_meta( $post_id, $key, $value ) {
 		if ( '' === $value || null === $value ) {
 			delete_post_meta( $post_id, $key );

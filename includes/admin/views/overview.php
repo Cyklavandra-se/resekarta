@@ -176,7 +176,7 @@ $cvrk_scan = get_option( List_Scanner::LAST_SCAN_OPTION );
 		<button class="button">Filtrera</button>
 	</form>
 
-	<table class="widefat striped cvrk-table">
+	<table class="widefat striped cvrk-table cvrk-overview" data-nonce="<?php echo esc_attr( wp_create_nonce( 'cvrk_quick_edit' ) ); ?>">
 		<thead>
 			<tr>
 				<th>Resa</th>
@@ -194,62 +194,50 @@ $cvrk_scan = get_option( List_Scanner::LAST_SCAN_OPTION );
 				<tr><td colspan="8">Inga resor att visa.</td></tr>
 			<?php endif; ?>
 			<?php foreach ( $cvrk_visible as $cvrk_r ) : ?>
-				<?php
-				$cvrk_t    = $cvrk_r['trip'];
-				$cvrk_edit = get_edit_post_link( $cvrk_t['id'] );
-				?>
-				<tr class="<?php echo $cvrk_r['action'] ? 'cvrk-row-action' : ''; ?>">
-					<td class="cvrk-title">
-						<strong><a href="<?php echo esc_url( (string) $cvrk_edit ); ?>"><?php echo esc_html( $cvrk_t['title'] ? $cvrk_t['title'] : '(utan namn)' ); ?></a></strong>
-						<div class="row-actions"><a href="<?php echo esc_url( (string) get_permalink( $cvrk_t['id'] ) ); ?>" target="_blank" rel="noopener">Visa sidan</a></div>
-					</td>
-					<td>
-						<?php echo esc_html( $cvrk_t['category'] ? Trips::CATEGORIES[ $cvrk_t['category'] ] : '–' ); ?>
-						<?php if ( $cvrk_t['category_manual'] && $cvrk_t['category_manual'] !== $cvrk_t['category_auto'] ) : ?>
-							<span class="cvrk-muted" title="Ändrad manuellt. Listsidorna säger <?php echo esc_attr( $cvrk_t['category_auto'] ? Trips::CATEGORIES[ $cvrk_t['category_auto'] ] : 'ingen' ); ?>.">(manuell)</span>
-						<?php endif; ?>
-					</td>
-					<td>
-						<?php
-						if ( $cvrk_r['dest'] ) {
-							echo esc_html( $cvrk_r['dest']['name'] );
-							if ( ! Destinations::has_point( $cvrk_r['dest'] ) ) {
-								echo ' <span class="cvrk-warn">(saknar koordinater)</span>';
-							}
-						} else {
-							echo '<span class="cvrk-muted">–</span>';
-						}
-						if ( $cvrk_t['own_point'] ) {
-							printf(
-								'<div class="cvrk-muted" title="Egen punkt">📍 %s, %s</div>',
-								esc_html( $cvrk_t['own_point'][0] ),
-								esc_html( $cvrk_t['own_point'][1] )
-							);
-						}
-						?>
-					</td>
-					<td><?php echo $cvrk_r['levels'] ? esc_html( implode( ', ', $cvrk_r['levels'] ) ) : '<span class="cvrk-muted">–</span>'; ?></td>
-					<td><?php echo esc_html( Trips::VISIBILITIES[ $cvrk_t['visibility'] ] ); ?></td>
-					<td>
-						<?php if ( $cvrk_r['status']['on'] ) : ?>
-							<span class="cvrk-yes">Ja</span>
-						<?php else : ?>
-							<span class="cvrk-no">Nej</span> <span class="cvrk-reason"><?php echo esc_html( $cvrk_r['status']['reason'] ); ?></span>
-						<?php endif; ?>
-					</td>
-					<td class="cvrk-langs">
-						<?php foreach ( $cvrk_codes as $cvrk_code ) : ?>
-							<?php if ( $cvrk_r['langs'][ $cvrk_code ] ) : ?>
-								<a class="cvrk-lang cvrk-lang-yes" href="<?php echo esc_url( (string) get_permalink( $cvrk_r['langs'][ $cvrk_code ] ) ); ?>" target="_blank" rel="noopener" title="Översatt"><?php echo esc_html( $cvrk_code ); ?></a>
-							<?php else : ?>
-								<span class="cvrk-lang cvrk-lang-no" title="Ingen översättning – svensk text visas"><?php echo esc_html( $cvrk_code ); ?></span>
-							<?php endif; ?>
-						<?php endforeach; ?>
-					</td>
-					<td><?php echo '' !== $cvrk_t['check'] ? '<span class="cvrk-flag">⚠ ' . esc_html( $cvrk_t['check'] ) . '</span>' : ''; ?></td>
-				</tr>
+				<?php Admin::render_row( $cvrk_r, $cvrk_codes ); ?>
 			<?php endforeach; ?>
 		</tbody>
 	</table>
-	<p class="cvrk-muted">Redigering av resorna kommer i en senare version. Namn, bild, beskrivning och taggar läses alltid direkt från resans sida.</p>
+	<p class="cvrk-muted">Namn, bild, beskrivning och taggar läses alltid direkt från resans sida. Kategori, synlighet, destination och egen punkt ändrar du med Snabbredigera eller i rutan Resekarta på resans sida.</p>
+
+	<template id="cvrk-qe-template">
+		<tr class="cvrk-qe-row">
+			<td colspan="8">
+				<div class="cvrk-qe">
+					<strong class="cvrk-qe-title"></strong>
+					<div class="cvrk-qe-fields">
+						<label>Kategori
+							<select name="category">
+								<option value="">Auto</option>
+								<?php foreach ( Trips::CATEGORIES as $cvrk_key => $cvrk_label ) : ?>
+									<option value="<?php echo esc_attr( $cvrk_key ); ?>"><?php echo esc_html( $cvrk_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</label>
+						<label>Synlighet
+							<select name="visibility">
+								<?php foreach ( Trips::VISIBILITIES as $cvrk_key => $cvrk_label ) : ?>
+									<option value="<?php echo esc_attr( $cvrk_key ); ?>"><?php echo esc_html( $cvrk_label ); ?></option>
+								<?php endforeach; ?>
+							</select>
+						</label>
+						<label>Destination <?php Admin::destination_select( 'destination', 0, '', true ); ?></label>
+						<label class="cvrk-new-dest" hidden>Ny destination <input type="text" name="new_destination"></label>
+						<span class="cvrk-point">
+							Egen punkt
+							<label>Lat <input type="text" name="lat" class="cvrk-lat" size="9" inputmode="decimal"></label>
+							<label>Lng <input type="text" name="lng" class="cvrk-lng" size="9" inputmode="decimal"></label>
+						</span>
+						<label class="cvrk-qe-check"><input type="checkbox" name="check_done" value="1"> Markera som kontrollerad</label>
+					</div>
+					<p class="cvrk-qe-buttons">
+						<button type="button" class="button button-primary cvrk-qe-save">Spara</button>
+						<button type="button" class="button cvrk-qe-cancel">Avbryt</button>
+						<span class="spinner"></span>
+						<span class="cvrk-qe-error cvrk-warn"></span>
+					</p>
+				</div>
+			</td>
+		</tr>
+	</template>
 </div>
