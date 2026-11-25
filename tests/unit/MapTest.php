@@ -95,4 +95,24 @@ final class MapTest extends TestCase {
 		$this->assertCount( 1, $c['changed']['point'] );
 		$this->assertSame( 'Moved', $c['changed']['title'][0]['old'] );
 	}
+
+	public function test_compare_matches_a_trip_whose_link_changed_to_its_translation() {
+		$old = array( array( 'title' => 'Cinque Terre', 'url' => 'https://cyklavandra.se/vandra/pa-egen-hand/cinque-terre/', 'lat' => 44.1, 'lng' => 9.7 ) );
+		$new = array( array( 'title' => 'Cinque Terre', 'url' => 'https://cyklavandra.se/no/vandring/cinque-terre-no/', 'lat' => 44.1, 'lng' => 9.7 ) );
+		$this->assertCount( 1, Map_Compare::compare( $new, $old )['only_old'] ); // Without resolver: by link.
+
+		$ids = array( '/vandra/pa-egen-hand/cinque-terre/' => 42, '/no/vandring/cinque-terre-no/' => 42 );
+		$c   = Map_Compare::compare(
+			$new,
+			$old,
+			function ( $url ) use ( $ids ) {
+				$k = Map_Compare::key( array( 'url' => $url ) );
+				return isset( $ids[ $k ] ) ? $ids[ $k ] : 0;
+			}
+		);
+		$this->assertSame( array(), $c['only_old'] );
+		$this->assertSame( array(), $c['only_new'] );
+		$this->assertCount( 1, $c['changed']['url'] );
+		$this->assertSame( '/no/vandring/cinque-terre-no/', $c['changed']['url'][0]['new'] );
+	}
 }

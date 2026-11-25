@@ -105,7 +105,7 @@ $cvrk_error = get_option( 'cvrk_map_error' );
 				continue;
 			}
 			$cvrk_any = true;
-			$cvrk_c   = Map_Compare::compare( $cvrk_new, $cvrk_old );
+			$cvrk_c   = Map_Compare::compare( $cvrk_new, $cvrk_old, Map_Compare::wp_resolver() );
 			?>
 			<h3><?php echo esc_html( $cvrk_name( $cvrk_code ) ); ?></h3>
 			<p>

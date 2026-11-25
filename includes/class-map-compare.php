@@ -15,6 +15,7 @@ final class Map_Compare {
 	/** Fields compared for trips found in both, with a label for the report. */
 	const FIELDS = array(
 		'title'      => 'namn',
+		'url'        => 'länk',
 		'cat'        => 'kategori',
 		'region'     => 'destination',
 		'desc'       => 'beskrivning',
@@ -33,18 +34,25 @@ final class Map_Compare {
 	/**
 	 * Compare two lists of records.
 	 *
-	 * @param array[] $new The plugin's records.
-	 * @param array[] $old The spreadsheet's records.
+	 * @param array[]       $new      The plugin's records.
+	 * @param array[]       $old      The spreadsheet's records.
+	 * @param callable|null $resolver url => key identifying the trip (e.g. the Swedish page ID),
+	 *                                so a trip whose link changed (now to its translation) is
+	 *                                still the same trip. Falls back to the link's path.
 	 * @return array only_new, only_old (key => title), changed (field => list of "title: old → new"), same
 	 */
-	public static function compare( array $new, array $old ) {
+	public static function compare( array $new, array $old, $resolver = null ) {
+		$key    = function ( array $r ) use ( $resolver ) {
+			$k = $resolver ? call_user_func( $resolver, isset( $r['url'] ) ? (string) $r['url'] : '' ) : '';
+			return $k ? 'id:' . $k : self::key( $r );
+		};
 		$by_new = array();
 		foreach ( $new as $r ) {
-			$by_new[ self::key( $r ) ] = $r;
+			$by_new[ $key( $r ) ] = $r;
 		}
 		$by_old = array();
 		foreach ( $old as $r ) {
-			$by_old[ self::key( $r ) ] = $r;
+			$by_old[ $key( $r ) ] = $r;
 		}
 		$out = array(
 			'new_count' => count( $new ),
@@ -56,7 +64,7 @@ final class Map_Compare {
 		);
 		foreach ( $by_new as $k => $r ) {
 			if ( ! isset( $by_old[ $k ] ) ) {
-				$out['only_new'][ $k ] = (string) $r['title'];
+				$out['only_new'][ self::key( $r ) ] = (string) $r['title'];
 				continue;
 			}
 			$o    = $by_old[ $k ];
@@ -79,10 +87,24 @@ final class Map_Compare {
 		}
 		foreach ( $by_old as $k => $r ) {
 			if ( ! isset( $by_new[ $k ] ) ) {
-				$out['only_old'][ $k ] = (string) $r['title'];
+				$out['only_old'][ self::key( $r ) ] = (string) $r['title'];
 			}
 		}
 		return $out;
+	}
+
+	/**
+	 * Resolver for compare(): the Swedish page ID behind a link on this site (cached), or 0.
+	 */
+	public static function wp_resolver() {
+		$cache = array();
+		return function ( $url ) use ( &$cache ) {
+			$path = self::key( array( 'url' => $url ) );
+			if ( ! isset( $cache[ $path ] ) ) {
+				$cache[ $path ] = List_Scanner::resolve_url( List_Scanner::home() . $path, false );
+			}
+			return $cache[ $path ];
+		};
 	}
 
 	/** Trips are matched on the path of their link (host and trailing slash ignored). */
@@ -106,6 +128,9 @@ final class Map_Compare {
 	private static function value( array $r, $field ) {
 		if ( 'point' === $field ) {
 			return sprintf( '%.4f, %.4f', isset( $r['lat'] ) ? (float) $r['lat'] : 0, isset( $r['lng'] ) ? (float) $r['lng'] : 0 );
+		}
+		if ( 'url' === $field ) {
+			return self::key( $r );
 		}
 		$v = isset( $r[ $field ] ) ? $r[ $field ] : '';
 		if ( is_array( $v ) ) {
