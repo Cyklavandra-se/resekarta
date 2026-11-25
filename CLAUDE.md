@@ -11,7 +11,7 @@ Den här filen är kravspecifikationen. Läs den hela innan du börjar, och föl
 | Vad | Namn |
 | --- | --- |
 | Repository | `Cyklavandra-se/resekarta` |
-| Pluginnamn (visas i WordPress) | **Resekarta** |
+| Pluginnamn (visas i WordPress) | **Cykla & Vandra – Resekarta** (som de andra egna tilläggen; i menyn Cykla&Vandra heter den bara Resekarta) |
 | Beskrivning | Interaktiv karta över Cykla & Vandras resor på alla språk |
 | Mapp, slug och text domain | `resekarta` (huvudfil `resekarta.php`) |
 | Prefix i kod | `cvrk_` för funktioner, options och meta; namespace/klasser `CV_Resekarta` |
@@ -170,6 +170,11 @@ I den här ordningen, bara om destination saknas:
   adminsidor, och i nattkörningen. Spara den som statiska filer (`uploads/karta/resor-{lang}.js` med
   `window.TRIPS = …;`, samma namn som idag) **och/eller** servera via en cachad REST-route. Statiska filer
   är snabbast på one.com.
+
+**Beslut (fas 2):** tillägget skriver sina filer i `uploads/resekarta/` (`resor-{lang}.js`, `karta.html`) i
+stället för `uploads/karta/`, så att kalkylarkets filer kan ligga kvar och jämföras under övergången
+(fliken Karta). Kartsidan byggs från `assets/map/karta.html` med biblioteken i `assets/map/vendor/`.
+Tilläggets `[resekarta]` slås på under Inställningar; `[resekarta_test]` fungerar alltid.
 
 ### 9. Kartan och kortkoden
 

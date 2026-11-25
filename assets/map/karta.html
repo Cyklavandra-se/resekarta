@@ -1,0 +1,1305 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Våra resor – interaktiv karta | Cykla & Vandra</title>
+
+<!-- Den här filen skapas av tillägget Resekarta från assets/map/karta.html.
+     Ändra inte här – ändringar skrivs över när kartan byggs om. -->
+
+<!-- Leaflet 1.9.4, markercluster 1.5.3, MapLibre GL 4.7.1 och maplibre-gl-leaflet 0.1.3,
+     buntade i tillägget (assets/map/vendor) – inga skript hämtas från andra webbplatser. -->
+<link rel="stylesheet" href="{{VENDOR}}leaflet/leaflet.css">
+<script src="{{VENDOR}}leaflet/leaflet.js"></script>
+<link rel="stylesheet" href="{{VENDOR}}markercluster/MarkerCluster.css">
+<link rel="stylesheet" href="{{VENDOR}}markercluster/MarkerCluster.Default.css">
+<script src="{{VENDOR}}markercluster/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="{{VENDOR}}maplibre/maplibre-gl.css">
+<script src="{{VENDOR}}maplibre/maplibre-gl.js"></script>
+<script src="{{VENDOR}}maplibre/leaflet-maplibre-gl.js"></script>
+
+<style>
+  @font-face {
+    font-family: 'Inter'; font-style: normal; font-display: swap; font-weight: 100 900;
+    src: url({{VENDOR}}inter/inter-latin-ext-wght-normal.woff2) format('woff2-variations');
+    unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+  }
+  @font-face {
+    font-family: 'Inter'; font-style: normal; font-display: swap; font-weight: 100 900;
+    src: url({{VENDOR}}inter/inter-latin-wght-normal.woff2) format('woff2-variations');
+    unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+  }
+</style>
+
+<style>
+  :root {
+    --green: #2BB24C;        /* Vandring — from logo */
+    --green-dark: #1E8C3A;
+    --blue: #1E49C9;         /* Cykel — from logo */
+    --blue-dark: #153793;
+    --yellow: #F2B705;       /* Guidad — warm yellow accent */
+    --yellow-dark: #C99502;
+    --ink: #15202B;
+    --ink-soft: #4a5560;
+    --mute: #8a94a0;
+    --line: #e3e6ea;
+    --line-soft: #eef0f3;
+    --bg: #ffffff;
+    --shadow-lg: 0 10px 28px -6px rgba(20,32,44,.18), 0 4px 10px -3px rgba(20,32,44,.08);
+    --shadow-sm: 0 2px 8px rgba(20,32,44,.08);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .shell {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    min-height: 520px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+  }
+
+  /* ---------- Top bar ---------- */
+  .topbar {
+    position: relative;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    padding: 12px 18px;
+    background: #fff;
+    border-top: 1px solid var(--line);
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .filter-group__label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-right: 4px;
+    white-space: nowrap;
+  }
+  .divider {
+    width: 1px;
+    height: 24px;
+    background: var(--line);
+    margin: 0 2px;
+  }
+  .reset-filters {
+    font: 500 12px 'Inter', sans-serif;
+    color: var(--ink-soft);
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .reset-filters:hover { color: var(--ink); }
+  .select {
+    font: 500 13px 'Inter', sans-serif;
+    color: var(--ink);
+    padding: 7px 28px 7px 12px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='none' stroke='%234a5560' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 10px center;
+    cursor: pointer;
+    min-height: 34px;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .select:hover { background-color: #f7f8fa; }
+  .select:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .topbar h1 {
+    margin: 0 0 0 auto;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .topbar h1 .muted {
+    color: var(--mute);
+    font-weight: 500;
+    margin-left: 8px;
+  }
+  .legend {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    transition: background .15s, border-color .15s, color .15s, transform .08s;
+    min-height: 40px;
+    user-select: none;
+  }
+  .chip:hover { background: #f7f8fa; }
+  .chip[hidden] { display: none; }
+  .utan-filter .topbar { display: none; }
+  .chip:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .chip .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--c, var(--ink));
+  }
+  .chip[aria-pressed="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+  .chip[aria-pressed="true"] .dot { box-shadow: 0 0 0 2px rgba(255,255,255,.25); }
+  .chip--sm {
+    padding: 6px 11px;
+    font-size: 13px;
+    min-height: 34px;
+  }
+  .chip--sm .dot { width: 8px; height: 8px; }
+  .chip .count {
+    font-variant-numeric: tabular-nums;
+    color: var(--mute);
+    font-size: 13px;
+  }
+  .chip[aria-pressed="true"] .count { color: rgba(255,255,255,.7); }
+
+  /* ---------- Map ---------- */
+  /* Kartan överst, filtren under */
+  .map-wrap {
+    position: relative;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  #map {
+    flex: 1 1 auto;
+    width: 100%;
+    background: #f3f5f7;
+  }
+
+  /* Markers */
+  .pin {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--c);
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.25), 0 0 0 1px rgba(0,0,0,.05);
+    cursor: pointer;
+    transition: transform .12s ease-out;
+  }
+  .pin:hover { transform: scale(1.18); }
+  .leaflet-marker-icon:focus .pin,
+  .pin.is-active { transform: scale(1.25); box-shadow: 0 0 0 5px rgba(43,178,76,.2), 0 2px 6px rgba(0,0,0,.25); }
+  .pin--vandring { --c: var(--green); }
+  .pin--cykel    { --c: var(--blue); }
+  .pin--guidad   { --c: var(--yellow); }
+
+  /* Cluster circles, themed */
+  .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+    background-color: rgba(43,178,76,.18) !important;
+  }
+  .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+    background-color: var(--green) !important;
+    color: #fff !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 600 !important;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.2);
+  }
+
+  /* ---------- Popup ---------- */
+  .leaflet-popup-content-wrapper {
+    border-radius: 14px;
+    padding: 0;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--line);
+  }
+  .leaflet-popup-content {
+    margin: 0;
+    width: 280px !important;
+    font-family: 'Inter', sans-serif;
+  }
+  .leaflet-popup-tip { box-shadow: var(--shadow-lg); }
+  .leaflet-popup-close-button {
+    font-size: 22px !important;
+    color: #fff !important;
+    right: 10px !important;
+    top: 10px !important;
+    width: 28px !important;
+    height: 28px !important;
+    line-height: 26px !important;
+    text-align: center;
+    background: rgba(0,0,0,.35) !important;
+    border-radius: 50%;
+    transition: background .15s;
+  }
+  .leaflet-popup-close-button:hover { background: rgba(0,0,0,.55) !important; }
+
+  .pc {
+    overflow: hidden;
+    border-radius: 14px;
+    background: #fff;
+  }
+  .pc__image {
+    position: relative;
+    aspect-ratio: 16/10;
+    background: #eef0f3;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .pc__image img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .pc__image--fallback {
+    background: linear-gradient(135deg, #eaf5ec 0%, #d5ead9 100%);
+  }
+  .pc__image--fallback.pc__image--cykel   { background: linear-gradient(135deg, #e7eefc 0%, #cddaf4 100%); }
+  .pc__image--fallback.pc__image--guidad  { background: linear-gradient(135deg, #fdf5d6 0%, #f6e4a4 100%); }
+  .pc__ph {
+    position: relative;
+    font-family: 'JetBrains Mono', ui-monospace, Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: rgba(20,32,44,.55);
+    background: rgba(255,255,255,.75);
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+  .pc__body { padding: 14px 16px 16px; }
+  .pc__kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--c, var(--green-dark));
+    margin-bottom: 6px;
+  }
+  .pc__kicker .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); }
+  .pc__title {
+    font-size: 17px;
+    font-weight: 600;
+    line-height: 1.25;
+    margin: 0 0 4px;
+    color: var(--ink);
+    letter-spacing: -0.005em;
+  }
+  .pc__meta {
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin: 0 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .pc__meta svg { flex: 0 0 auto; }
+  .pc__desc {
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: var(--ink-soft);
+    margin: 0 0 14px;
+    text-wrap: pretty;
+  }
+  .pc__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 16px;
+    background: var(--ink);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    border-radius: 8px;
+    transition: background .15s, transform .08s;
+    min-height: 42px;
+  }
+  .pc__cta:hover { background: #000; }
+  .pc__cta:active { transform: translateY(1px); }
+  .pc__cta svg { transition: transform .15s; }
+  .pc__cta:hover svg { transform: translate(2px, -2px); }
+
+  .pc--vandring { --c: var(--green); }
+  .pc--cykel    { --c: var(--blue); }
+  .pc--guidad   { --c: var(--yellow-dark); }
+
+  /* ---------- Tags row ---------- */
+  .pc__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0 0 14px;
+  }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink-soft);
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+  .tag svg { flex: 0 0 auto; }
+  .tag--diff-1 { background: #eaf5ec; border-color: #c8e4ce; color: #1E8C3A; }
+  .tag--diff-2 { background: #fdf5d6; border-color: #f2e3a0; color: #8a6a02; }
+  .tag--diff-3 { background: #fbe9d6; border-color: #eac59a; color: #8a4b12; }
+  .tag--diff-4 { background: #fae0e0; border-color: #edbdbd; color: #9a2626; }
+  .tag--season-var    { background: #effaef; border-color: #cfe8cf; color: #2d7a3c; }
+  .tag--season-sommar { background: #fff4d9; border-color: #f4dd8f; color: #8a6200; }
+  .tag--season-host   { background: #fbe9d6; border-color: #eac59a; color: #8a4b12; }
+  .tag--season-vinter { background: #e5f0fa; border-color: #b9d3ec; color: #1e4f8a; }
+  .tag--dog { background: #f5ecfa; border-color: #d9bfe8; color: #6d2a8f; }
+
+  /* Leaflet default attribution tweak */
+  .leaflet-control-attribution {
+    background: rgba(255,255,255,.85) !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 10px !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+  }
+  .leaflet-bar a {
+    background: #fff !important;
+    color: var(--ink) !important;
+    border-bottom-color: var(--line) !important;
+    font-family: 'Inter', sans-serif !important;
+  }
+  .leaflet-bar a:hover { background: #f7f8fa !important; }
+
+  /* ---------- Reset-view button ---------- */
+  .reset-btn {
+    position: absolute;
+    bottom: 48px;
+    right: 14px;
+    z-index: 900;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 12px;
+    background: #fff;
+    border: 1px solid rgba(0,0,0,.18);
+    border-radius: 6px;
+    font: 500 13px 'Inter', sans-serif;
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    min-height: 38px;
+  }
+  .reset-btn:hover { background: #f7f8fa; }
+
+  /* ---------- Tweaks panel ---------- */
+  .tweaks {
+    position: absolute;
+    right: 16px;
+    bottom: 96px;
+    z-index: 1001;
+    width: 260px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    padding: 14px;
+    font-size: 13px;
+    display: none;
+  }
+  .tweaks.is-open { display: block; }
+  .tweaks h3 {
+    margin: 0 0 10px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--mute);
+  }
+  .tweaks label {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 10px; margin: 6px 0;
+  }
+  .tweaks select {
+    font: inherit; padding: 5px 8px;
+    border: 1px solid var(--line); border-radius: 6px; background: #fff;
+    min-width: 130px;
+  }
+
+  /* ---------- Val av kartstil (nere till vänster) ---------- */
+  .stilval {
+    position: absolute; left: 12px; bottom: 28px; z-index: 900;
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 8px 10px; background: #fff; border: 1px solid rgba(0,0,0,.18);
+    border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    font: 500 12px 'Inter', sans-serif; color: var(--ink);
+  }
+  .stilval select { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; }
+  .stilval a { color: var(--ink-soft); }
+  .stilval.ett-sprak .sprak-del { display: none; }
+  .stilval a.aktiv { color: var(--ink); font-weight: 700; text-decoration: none; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 640px) {
+    .topbar { padding: 10px 12px; gap: 10px; flex-wrap: wrap; }
+    .topbar h1 { font-size: 15px; }
+    .topbar h1 .muted { display: none; }
+    .legend { width: 100%; order: 2; margin-left: 0; }
+    .chip { padding: 7px 12px; font-size: 13px; min-height: 38px; }
+    .leaflet-popup-content { width: 240px !important; }
+  }
+</style>
+</head>
+
+<body>
+<div class="shell" data-screen-label="01 Interactive trip map">
+
+  <div class="map-wrap">
+    <div id="map" aria-label="Karta över våra resor"></div>
+
+    <div class="stilval" id="stilval">
+      <select id="stil" aria-label="Kartstil">
+        <option value="positron" data-i18n="stil_positron">Ljus</option>
+        <option value="liberty" data-i18n="stil_liberty">Färgad</option>
+        <option value="bright" data-i18n="stil_bright">Ljus färgad</option>
+        <option value="klassisk" data-i18n="stil_klassisk">Klassisk</option>
+      </select>
+      <span class="sprak-del"><span data-i18n="sprak">Språk</span>:</span> <span class="sprak-del" id="sprakval"></span>
+    </div>
+
+    <button class="reset-btn" id="resetBtn" title="Visa alla resor">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
+      <span data-i18n="aterstall">Återställ vy</span>
+    </button>
+
+    <div class="tweaks" id="tweaks" role="region" aria-label="Tweaks">
+      <h3>Tweaks</h3>
+      <label>Kartstil
+        <select id="tw-tiles">
+          <option value="positron">Positron (ljus, CARTO)</option>
+          <option value="voyager">Voyager (färgad, CARTO)</option>
+          <option value="dark">Dark Matter (CARTO)</option>        <option value="osm">OpenStreetMap</option>
+          <option value="cyclosm">CyclOSM (cykelvägar)</option>
+          <option value="hot">Humanitarian (ljus)</option>
+          <option value="terrain">Terräng</option>
+        </select>
+      </label>
+      <label>Markör
+        <select id="tw-marker">
+          <option value="dot">Cirkel (standard)</option>
+          <option value="pin">Droppe</option>
+          <option value="ring">Ring</option>
+        </select>
+      </label>
+      <label>Kluster
+        <select id="tw-cluster">
+          <option value="on">På</option>
+          <option value="off">Av</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <div class="topbar" role="banner">
+    <div class="filter-group" role="group" aria-label="Filtrera kategorier">
+      <button class="chip" data-filter="guidad" aria-pressed="true" style="--c: var(--yellow)">
+        <span class="dot"></span> <span data-i18n="chip_guidad">Guidade</span> <span class="count" id="count-guidad"></span>
+      </button>
+      <button class="chip" data-filter="cykel" aria-pressed="true" style="--c: var(--blue)">
+        <span class="dot"></span> <span data-i18n="chip_cykel">Cykla</span> <span class="count" id="count-cykel"></span>
+      </button>
+      <button class="chip" data-filter="vandring" aria-pressed="true" style="--c: var(--green)">
+        <span class="dot"></span> <span data-i18n="chip_vandring">Vandra</span> <span class="count" id="count-vandring"></span>
+      </button>
+    </div>
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <div class="filter-group" role="group" aria-label="Filtrera årstid">
+      <select id="season-select" class="select" aria-label="Välj årstid">
+        <option data-i18n="alla_arstider" value="">Alla årstider</option>
+        <option data-i18n="Vår" value="Vår">Vår</option>
+        <option data-i18n="Sommar" value="Sommar">Sommar</option>
+        <option data-i18n="Höst" value="Höst">Höst</option>
+        <option data-i18n="Vinter" value="Vinter">Vinter</option>
+      </select>
+    </div>
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <div class="filter-group" role="group" aria-label="Filtrera svårighetsgrad">
+      <select id="diff-select" class="select" aria-label="Välj svårighetsgrad">
+        <option data-i18n="alla_nivaer" value="">Alla nivåer</option>
+        <option data-i18n="niva1" value="1">Nivå 1</option>
+        <option data-i18n="niva2" value="2">Nivå 2</option>
+        <option data-i18n="niva3" value="3">Nivå 3</option>
+        <option data-i18n="niva4" value="4">Nivå 4</option>
+      </select>
+    </div>
+
+    <div class="divider" aria-hidden="true"></div>
+
+    <div class="filter-group" role="group" aria-label="Övriga filter">
+      <button class="chip chip--sm" data-flag="dog" aria-pressed="false" data-i18n="hund">Hundvänligt</button>
+      <button class="chip chip--sm" data-flag="train" aria-pressed="false" data-i18n="tag">Tåg</button>
+      <button class="chip chip--sm" data-flag="wine" aria-pressed="false" data-i18n="vin">Vin</button>
+      <button class="chip chip--sm" data-flag="weekend" aria-pressed="false" data-i18n="langhelg">Långhelg</button>
+      <button class="chip chip--sm" data-flag="family" aria-pressed="false" data-i18n="familj">Familjeresor</button>
+    </div>
+
+    <button class="chip chip--sm" id="taggChip" type="button" aria-pressed="true" hidden></button>
+
+    <button class="reset-filters" id="resetFilters" type="button" title="Rensa alla filter" data-i18n="rensa">Rensa filter</button>
+
+    <h1><span data-i18n="vara_resor">Våra resor</span> <span class="muted"><span id="shown-count">0</span>/<span id="total-count">0</span> <span data-i18n="resor">resor</span></span></h1>
+  </div>
+</div>
+
+<!-- Resedata: tillägget Resekarta skriver resor-{språk}.js i samma mapp som den här filen
+     (när en resesida sparas, när något ändras i Resekarta och varje natt).
+     Språket kommer från kortkoden (?lang=). Utan lang= gissas det från adressen till sidan
+     som bäddar in kartan (/no/, /da/ …), annars svenska. -->
+<script>
+// Språk med kartdata, och standardstil – fylls i av tillägget när kartan byggs.
+const SPRAK = /*CVRK-SPRAK*/{{SPRAK}}/*CVRK-SPRAK*/;
+const STANDARDSTIL = '{{STIL}}';
+const LANG = (function valjSprak() {
+  const finns = k => SPRAK.indexOf(k) >= 0;
+  const kod = k => { k = String(k || '').toLowerCase(); return /^(nb|nn)$/.test(k) ? 'no' : k; };
+  const q = kod(new URLSearchParams(location.search).get('lang'));
+  if (q && finns(q)) return q;
+  const prefix = s => { const m = /^(?:https?:\/\/[^\/]+)?\/([a-z]{2})(?:\/|$)/.exec(s || ''); return m && finns(kod(m[1])) ? kod(m[1]) : ''; };
+  try { if (window.parent !== window && prefix(window.parent.location.pathname)) return prefix(window.parent.location.pathname); } catch (e) {}
+  try { if (prefix(document.referrer)) return prefix(document.referrer); } catch (e) {}
+  return SPRAK[0] || 'sv';
+})();
+// Versionen (v=) ändras när kartdatan byggs om, så att webbläsaren hämtar den nya filen.
+document.write('<script src="resor-' + LANG + '.js?v=' + encodeURIComponent(new URLSearchParams(location.search).get('v') || '{{VERSION}}') + '"><\/script>');
+</script>
+<script>window.TRIPS = window.TRIPS || [];</script>
+<script>
+/* ======================================================================
+   Tweak defaults — persisted via EDITMODE markers
+   ====================================================================== */
+const TWEAKS = /*EDITMODE-BEGIN*/{
+  "tiles": "hot",
+  "marker": "pin",
+  "cluster": "off"
+}/*EDITMODE-END*/;
+
+/* ======================================================================
+   Språk. Värdena i datan (Vår, Sommar …) är alltid svenska; bara det som visas översätts.
+   Ett språk utan texter här (t.ex. ett nytt språk i WPML) använder engelska.
+   ====================================================================== */
+const TEXTER = {
+  sv: {
+    sidtitel: 'Våra resor – interaktiv karta | Cykla & Vandra',
+    guidad: 'Guidad', cykel: 'Cykel', vandring: 'Vandring',
+    chip_guidad: 'Guidade', chip_cykel: 'Cykla', chip_vandring: 'Vandra',
+    alla_arstider: 'Alla årstider', 'Vår': 'Vår', 'Sommar': 'Sommar', 'Höst': 'Höst', 'Vinter': 'Vinter',
+    alla_nivaer: 'Alla nivåer', niva: 'Nivå', niva1: 'Nivå 1', niva2: 'Nivå 2', niva3: 'Nivå 3', niva4: 'Nivå 4',
+    hund: 'Hundvänligt', tag: 'Tåg', vin: 'Vin', langhelg: 'Långhelg', familj: 'Familjeresor',
+    rensa: 'Rensa filter', rensa_titel: 'Rensa alla filter',
+    vara_resor: 'Våra resor', resor: 'resor',
+    aterstall: 'Återställ vy', aterstall_titel: 'Visa alla resor',
+    las_mer: 'Läs mer', svarighetsgrad: 'Svårighetsgrad', basta_tid: 'Bästa tid', hund_titel: 'Hund är välkommen',
+    karta: 'Karta över våra resor', f_kat: 'Filtrera kategorier', f_ars: 'Välj årstid',
+    f_niva: 'Välj svårighetsgrad', f_ovr: 'Övriga filter',
+    stil_positron: 'Ljus', stil_liberty: 'Färgad', stil_bright: 'Ljus färgad', stil_klassisk: 'Klassisk',
+    sprak: 'Språk', kartstil: 'Kartstil',
+  },
+  no: {
+    sidtitel: 'Våre turer – interaktivt kart | Cykla & Vandra',
+    guidad: 'Guidet', cykel: 'Sykkel', vandring: 'Vandring',
+    chip_guidad: 'Guidede', chip_cykel: 'Sykling', chip_vandring: 'Vandring',
+    alla_arstider: 'Alle årstider', 'Vår': 'Vår', 'Sommar': 'Sommer', 'Höst': 'Høst', 'Vinter': 'Vinter',
+    alla_nivaer: 'Alle nivåer', niva: 'Nivå', niva1: 'Nivå 1', niva2: 'Nivå 2', niva3: 'Nivå 3', niva4: 'Nivå 4',
+    hund: 'Hundevennlig', tag: 'Tog', vin: 'Vin', langhelg: 'Langhelg', familj: 'Familieturer',
+    rensa: 'Nullstill filtre', rensa_titel: 'Nullstill alle filtre',
+    vara_resor: 'Våre turer', resor: 'turer',
+    aterstall: 'Tilbakestill visning', aterstall_titel: 'Vis alle turer',
+    las_mer: 'Les mer', svarighetsgrad: 'Vanskelighetsgrad', basta_tid: 'Beste tid', hund_titel: 'Hund er velkommen',
+    karta: 'Kart over turene våre', f_kat: 'Filtrer kategorier', f_ars: 'Velg årstid',
+    f_niva: 'Velg vanskelighetsgrad', f_ovr: 'Andre filtre',
+    stil_positron: 'Lys', stil_liberty: 'Farget', stil_bright: 'Lys farget', stil_klassisk: 'Klassisk',
+    sprak: 'Språk', kartstil: 'Kartstil',
+  },
+  da: {
+    sidtitel: 'Vores rejser – interaktivt kort | Cykla & Vandra',
+    guidad: 'Guidet', cykel: 'Cykel', vandring: 'Vandring',
+    chip_guidad: 'Guidede', chip_cykel: 'Cykling', chip_vandring: 'Vandring',
+    alla_arstider: 'Alle årstider', 'Vår': 'Forår', 'Sommar': 'Sommer', 'Höst': 'Efterår', 'Vinter': 'Vinter',
+    alla_nivaer: 'Alle niveauer', niva: 'Niveau', niva1: 'Niveau 1', niva2: 'Niveau 2', niva3: 'Niveau 3', niva4: 'Niveau 4',
+    hund: 'Hundevenligt', tag: 'Tog', vin: 'Vin', langhelg: 'Forlænget weekend', familj: 'Familierejser',
+    rensa: 'Nulstil filtre', rensa_titel: 'Nulstil alle filtre',
+    vara_resor: 'Vores rejser', resor: 'rejser',
+    aterstall: 'Nulstil visning', aterstall_titel: 'Vis alle rejser',
+    las_mer: 'Læs mere', svarighetsgrad: 'Sværhedsgrad', basta_tid: 'Bedste tid', hund_titel: 'Hunde er velkomne',
+    karta: 'Kort over vores rejser', f_kat: 'Filtrer kategorier', f_ars: 'Vælg årstid',
+    f_niva: 'Vælg sværhedsgrad', f_ovr: 'Andre filtre',
+    stil_positron: 'Lys', stil_liberty: 'Farvet', stil_bright: 'Lys farvet', stil_klassisk: 'Klassisk',
+    sprak: 'Sprog', kartstil: 'Kortstil',
+  },
+  fi: {
+    sidtitel: 'Matkamme – interaktiivinen kartta | Cykla & Vandra',
+    guidad: 'Opastettu', cykel: 'Pyöräily', vandring: 'Vaellus',
+    chip_guidad: 'Opastetut', chip_cykel: 'Pyöräily', chip_vandring: 'Vaellus',
+    alla_arstider: 'Kaikki vuodenajat', 'Vår': 'Kevät', 'Sommar': 'Kesä', 'Höst': 'Syksy', 'Vinter': 'Talvi',
+    alla_nivaer: 'Kaikki tasot', niva: 'Taso', niva1: 'Taso 1', niva2: 'Taso 2', niva3: 'Taso 3', niva4: 'Taso 4',
+    hund: 'Koiraystävällinen', tag: 'Juna', vin: 'Viini', langhelg: 'Pitkä viikonloppu', familj: 'Perhematkat',
+    rensa: 'Tyhjennä suodattimet', rensa_titel: 'Tyhjennä kaikki suodattimet',
+    vara_resor: 'Matkamme', resor: 'matkaa',
+    aterstall: 'Palauta näkymä', aterstall_titel: 'Näytä kaikki matkat',
+    las_mer: 'Lue lisää', svarighetsgrad: 'Vaativuus', basta_tid: 'Paras aika', hund_titel: 'Koirat ovat tervetulleita',
+    karta: 'Kartta matkoistamme', f_kat: 'Suodata luokat', f_ars: 'Valitse vuodenaika',
+    f_niva: 'Valitse vaativuus', f_ovr: 'Muut suodattimet',
+    stil_positron: 'Vaalea', stil_liberty: 'Värikäs', stil_bright: 'Vaalea värikäs', stil_klassisk: 'Klassinen',
+    sprak: 'Kieli', kartstil: 'Karttatyyli',
+  },
+  en: {
+    sidtitel: 'Our tours – interactive map | Cykla & Vandra',
+    guidad: 'Guided', cykel: 'Cycling', vandring: 'Walking',
+    chip_guidad: 'Guided', chip_cykel: 'Cycling', chip_vandring: 'Walking',
+    alla_arstider: 'All seasons', 'Vår': 'Spring', 'Sommar': 'Summer', 'Höst': 'Autumn', 'Vinter': 'Winter',
+    alla_nivaer: 'All levels', niva: 'Level', niva1: 'Level 1', niva2: 'Level 2', niva3: 'Level 3', niva4: 'Level 4',
+    hund: 'Dog-friendly', tag: 'Train', vin: 'Wine', langhelg: 'Long weekend', familj: 'Family tours',
+    rensa: 'Clear filters', rensa_titel: 'Clear all filters',
+    vara_resor: 'Our tours', resor: 'tours',
+    aterstall: 'Reset view', aterstall_titel: 'Show all tours',
+    las_mer: 'Read more', svarighetsgrad: 'Difficulty', basta_tid: 'Best time', hund_titel: 'Dogs welcome',
+    karta: 'Map of our tours', f_kat: 'Filter categories', f_ars: 'Choose season',
+    f_niva: 'Choose difficulty', f_ovr: 'Other filters',
+    stil_positron: 'Light', stil_liberty: 'Colourful', stil_bright: 'Light colourful', stil_klassisk: 'Classic',
+    sprak: 'Language', kartstil: 'Map style',
+  },
+};
+const T = TEXTER[LANG] || TEXTER.en;
+
+/* ======================================================================
+   ?filters=no döljer filterraden helt (kartan tar då hela höjden).
+   Kan stå i kartans egen adress eller i adressen till sidan som bäddar in den.
+   ====================================================================== */
+(function doljFilter() {
+  const egen = new URLSearchParams(location.search);
+  let v = egen.get('filters');
+  if (v === null) {
+    try { if (window.parent !== window) v = new URLSearchParams(window.parent.location.search).get('filters'); } catch (e) {}
+  }
+  if (/^(no|nej|0|false|off)$/i.test(String(v || '').trim())) {
+    document.querySelector('.shell').classList.add('utan-filter');
+  }
+})();
+
+/* ======================================================================
+   Urval via adressen (WordPress-taggarnas kortnamn):
+     ?tag=donau                 resor med taggen "donau"
+     ?tag=donau,rhen            resor med NÅGON av taggarna (donau eller rhen)
+     ?tag=spanien&tag=cykel     resor med ALLA taggarna (spanien och cykel)
+     ?tag=spanien&tag=cykel,vandring   spanien och (cykel eller vandring)
+   Kan stå i kartans egen adress (iframe-src) eller i adressen till sidan som
+   bäddar in kartan. ?tag= (tomt) visar alla resor.
+   ====================================================================== */
+const TAGG_URVAL = (function () {
+  const egen = new URLSearchParams(location.search);
+  let varden = egen.getAll('tag');
+  if (!egen.has('tag')) {
+    try { if (window.parent !== window) varden = new URLSearchParams(window.parent.location.search).getAll('tag'); } catch (e) {}
+  }
+  // En grupp per tag-parameter; inom en grupp räcker det att en tagg matchar
+  return varden
+    // Mellanslag blir bindestreck, som i WordPress kortnamn: "costa brava" → "costa-brava"
+    .map(v => v.toLowerCase().split(',').map(s => s.trim().replace(/\s+/g, '-')).filter(Boolean))
+    .filter(g => g.length);
+})();
+
+(function valjUtResor() {
+  if (!TAGG_URVAL.length) return;
+  const urval = TRIPS.filter(t => TAGG_URVAL.every(grupp => (t.tags || []).some(x => grupp.includes(x))));
+  const beskr = TAGG_URVAL.map(g => g.join(' eller ')).join(' och ');
+  if (!urval.length) { console.warn('Inga resor matchar', beskr, '– visar alla resor'); return; }
+  window.TRIPS = urval;
+  const chip = document.getElementById('taggChip');
+  const snyggt = s => s.charAt(0).toUpperCase() + s.slice(1).replace(/-/g, ' ');
+  const namn = TAGG_URVAL.map(g => g.map(snyggt).join(', ')).join(' + ');
+  chip.textContent = namn + ' \u2715';
+  chip.title = T.aterstall_titel;
+  chip.hidden = false;
+  chip.addEventListener('click', () => {
+    const p = new URLSearchParams(location.search);
+    p.set('tag', ''); // tomt = visa alla, även om sidan runt kartan har ?tag=
+    location.search = p.toString();
+  });
+})();
+
+(function oversatt() {
+  document.documentElement.lang = LANG === 'no' ? 'nb' : LANG;
+  document.title = T.sidtitel;
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = T[el.dataset.i18n]; });
+  const satt = (sel, attr, nyckel) => { const el = document.querySelector(sel); if (el) el.setAttribute(attr, T[nyckel]); };
+  satt('#resetFilters', 'title', 'rensa_titel');
+  satt('#resetBtn', 'title', 'aterstall_titel');
+  satt('#map', 'aria-label', 'karta');
+  satt('[aria-label="Filtrera kategorier"]', 'aria-label', 'f_kat');
+  satt('#season-select', 'aria-label', 'f_ars');
+  satt('#diff-select', 'aria-label', 'f_niva');
+  satt('[aria-label="Övriga filter"]', 'aria-label', 'f_ovr');
+  satt('#stil', 'aria-label', 'kartstil');
+})();
+
+/* ======================================================================
+   Map setup
+   ====================================================================== */
+const CAT_LABEL = { guidad: T.guidad, cykel: T.cykel, vandring: T.vandring };
+const CAT_COLOR = { guidad: "#F2B705", cykel: "#1E49C9", vandring: "#2BB24C" };
+
+/* CARTO-nyckel — hämta en gratis på https://carto.com (Account settings → API keys).
+   Lämnas den tom faller Positron/Voyager tillbaka på nyckelfria stilar. */
+const CARTO_API_KEY = '';
+
+function carto(path, r) {
+  const q = CARTO_API_KEY ? '?api_key=' + encodeURIComponent(CARTO_API_KEY) : '';
+  return 'https://{s}.basemaps.cartocdn.com/' + path + '/{z}/{x}/{y}' + (r ? '{r}' : '') + '.png' + q;
+}
+
+const CARTO_ATTR = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/attributions">CARTO</a>';
+
+const TILE_PROVIDERS = {
+  positron: {
+    url: carto('light_all', true),
+    attr: CARTO_ATTR,
+    sub: 'abcd', max: 19
+  },
+  voyager: {
+    url: carto('rastertiles/voyager', true),
+    attr: CARTO_ATTR,
+    sub: 'abcd', max: 19
+  },
+  dark: {
+    url: carto('dark_all', true),
+    attr: CARTO_ATTR,
+    sub: 'abcd', max: 19
+  },
+  osm: {
+    url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors',
+    sub: 'abc', max: 19
+  },
+  cyclosm: {
+    url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+    attr: '<a href="https://www.cyclosm.org">CyclOSM</a> | &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors',
+    sub: 'abc', max: 18
+  },
+  hot: {
+    url: 'https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png',
+    attr: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors | Tiles: <a href="https://www.hotosm.org/">HOT</a>',
+    sub: 'abc', max: 19
+  },
+  terrain: {
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attr: 'Map data: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)',
+    sub: 'abc', max: 17
+  }
+};
+
+const map = L.map('map', {
+  zoomControl: true,
+  scrollWheelZoom: true,
+  worldCopyJump: true,
+  minZoom: 2,
+  maxZoom: 18,
+  attributionControl: true,
+  preferCanvas: false
+}).setView([30, 5], 2);
+
+let tileLayer;
+function setTiles(name) {
+  if (tileLayer) map.removeLayer(tileLayer);
+  let key = name;
+  // Utan CARTO-nyckel: fall tillbaka på närmaste nyckelfria stil
+  if (!CARTO_API_KEY && (key === 'positron' || key === 'voyager' || key === 'dark')) {
+    key = key === 'positron' ? 'hot' : 'osm';
+  }
+  const p = TILE_PROVIDERS[key] || TILE_PROVIDERS.osm;
+  tileLayer = L.tileLayer(p.url, {
+    subdomains: p.sub,
+    maxZoom: p.max,
+    attribution: p.attr
+  }).addTo(map);
+}
+/* ----------------------------------------------------------------------
+   Vektorkarta från OpenFreeMap (gratis, ingen nyckel). Ortnamnen hämtas som
+   text och visas på besökarens språk: name:sv / name:nb, annars det lokala namnet.
+   Går vektorkartan inte att visa (t.ex. gammal webbläsare utan WebGL) används
+   den vanliga kartan.
+   ---------------------------------------------------------------------- */
+const VEKTOR_STILAR = {
+  liberty:  'https://tiles.openfreemap.org/styles/liberty',
+  bright:   'https://tiles.openfreemap.org/styles/bright',
+  positron: 'https://tiles.openfreemap.org/styles/positron',
+};
+const VEKTOR_ATTR = '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> ' +
+  '&copy; <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> ' +
+  '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OSM</a>';
+const NAMN_FALT = LANG === 'no'
+  ? ['coalesce', ['get', 'name:nb'], ['get', 'name:no'], ['get', 'name']]
+  : ['coalesce', ['get', 'name:' + LANG], ['get', 'name']];
+
+function oversattEtiketter(ml) {
+  (ml.getStyle().layers || []).forEach(l => {
+    if (l.type !== 'symbol') return;
+    const tf = ml.getLayoutProperty(l.id, 'text-field');
+    if (!tf || !/name/.test(JSON.stringify(tf))) return;   // husnummer, vägnummer m.m. lämnas
+    if (/housenumber|shield|ref/i.test(l.id)) return;
+    ml.setLayoutProperty(l.id, 'text-field', NAMN_FALT);
+  });
+}
+
+let vektorLager = null;
+let kartVersion = 0;
+function setVektorKarta(stil) {
+  const version = ++kartVersion;
+  if (vektorLager) { map.removeLayer(vektorLager); vektorLager = null; }
+  if (!VEKTOR_STILAR[stil]) { setTiles('hot'); return; } // "klassisk" = den tidigare kartan
+  if (tileLayer) { map.removeLayer(tileLayer); tileLayer = null; }
+  let laddad = false;
+  try {
+    vektorLager = L.maplibreGL({ style: VEKTOR_STILAR[stil], attributionControl: { customAttribution: VEKTOR_ATTR } }).addTo(map);
+    const ml = vektorLager.getMaplibreMap();
+    ml.on('style.load', () => { laddad = true; oversattEtiketter(ml); });
+    ml.on('error', e => console.warn('Kartfel:', e && e.error ? e.error.message : e));
+  } catch (e) {
+    console.warn('Vektorkartan kunde inte startas:', e);
+  }
+  setTimeout(() => {
+    if (laddad || version !== kartVersion) return;
+    console.warn('Vektorkartan laddades inte – visar vanlig karta');
+    if (vektorLager) { map.removeLayer(vektorLager); vektorLager = null; }
+    setTiles('hot');
+  }, 10000);
+}
+
+// Kartstil: ?stil= i adressen, annars besökarens senaste val, annars Bright (ljus färgad)
+const STILAR = ['positron', 'liberty', 'bright', 'klassisk'];
+const params = new URLSearchParams(location.search);
+let sparadStil = null;
+try { sparadStil = localStorage.getItem('cv_kartstil'); } catch (e) {}
+const startStil = [params.get('stil'), sparadStil, STANDARDSTIL, 'bright'].find(v => STILAR.includes(v));
+setVektorKarta(startStil);
+
+(function () {
+  const sel = document.getElementById('stil');
+  sel.value = startStil;
+  sel.addEventListener('change', () => {
+    setVektorKarta(sel.value);
+    try { localStorage.setItem('cv_kartstil', sel.value); } catch (e) {}
+  });
+  const val = document.getElementById('sprakval');
+  SPRAK.forEach((k, i) => {
+    const a = document.createElement('a');
+    a.href = '#'; a.dataset.lang = k; a.textContent = k.toUpperCase();
+    if (i) val.appendChild(document.createTextNode(' '));
+    val.appendChild(a);
+  });
+  if (SPRAK.length < 2) document.getElementById('stilval').classList.add('ett-sprak');
+  document.querySelectorAll('#stilval [data-lang]').forEach(a => {
+    if (a.dataset.lang === LANG) a.classList.add('aktiv');
+    a.addEventListener('click', ev => {
+      ev.preventDefault();
+      params.set('lang', a.dataset.lang);
+      params.set('stil', sel.value);
+      location.search = params.toString();
+    });
+  });
+})();
+
+/* ======================================================================
+   Markers
+   ====================================================================== */
+function makeIcon(cat, style) {
+  if (style === 'pin') {
+    const c = CAT_COLOR[cat];
+    return L.divIcon({
+      className: 'pin-wrap',
+      iconSize: [28, 36],
+      iconAnchor: [14, 34],
+      popupAnchor: [0, -32],
+      html: `<svg width="28" height="36" viewBox="0 0 28 36" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 1 C7 1 1.5 6.3 1.5 13 C1.5 22 14 34 14 34 C14 34 26.5 22 26.5 13 C26.5 6.3 21 1 14 1 Z"
+          fill="${c}" stroke="white" stroke-width="2" stroke-linejoin="round"
+          filter="drop-shadow(0 2px 3px rgba(0,0,0,.3))"/>
+        <circle cx="14" cy="13" r="4.5" fill="white"/>
+      </svg>`
+    });
+  }
+  if (style === 'ring') {
+    return L.divIcon({
+      className: '',
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
+      popupAnchor: [0, -14],
+      html: `<div class="pin pin--${cat}" style="background:#fff;border-width:5px;border-color:var(--c);width:20px;height:20px;box-shadow:0 2px 5px rgba(0,0,0,.2)"></div>`
+    });
+  }
+  // dot (default)
+  return L.divIcon({
+    className: '',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+    popupAnchor: [0, -12],
+    html: `<div class="pin pin--${cat}"></div>`
+  });
+}
+
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+function popupHTML(t) {
+  const iconPin = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 6-8 13-8 13s-8-7-8-13a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
+  const iconArrow = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg>`;
+
+  // Icons for tags
+  const iconSpring = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-2 3-2 5 0 7 2-2 2-4 0-7zm-6 8c3 0 5 1 6 3-2 1-4 1-6-3zm12 0c-2 4-4 4-6 3 1-2 3-3 6-3zM11 13h2v9h-2z"/></svg>`;
+  const iconSummer = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M5 19l1.5-1.5M17.5 6.5 19 5"/></svg>`;
+  const iconAutumn = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c-1 3-3 4-5 5 2 1 3 3 3 6-3-1-5-1-7 1 1-3 0-5-1-7 3 1 5 0 7-2-1 3 0 5 2 7-1-3 0-5 1-7-2 1-3-1 0-3z"/></svg>`;
+  const iconWinter = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2v20M4 6l16 12M20 6 4 18M2 12h20"/></svg>`;
+  const iconDiff = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 20h18"/><path d="M5 20 12 6l7 14"/></svg>`;
+  const iconDog = `<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4.5 3c.8 0 1.5.7 1.5 1.5V7l2 1 2-1V4.5c0-.8.7-1.5 1.5-1.5s1.5.7 1.5 1.5V8l2 1 3 2v3a3 3 0 0 1-3 3h-1v4h-2v-4H9v4H7v-5l-3-2V6a3 3 0 0 1 .5-3zM16 11a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg>`;
+
+  const seasonIcon = { 'Vår': iconSpring, 'Sommar': iconSummer, 'Höst': iconAutumn, 'Vinter': iconWinter };
+  const seasonCls = { 'Vår': 'var', 'Sommar': 'sommar', 'Höst': 'host', 'Vinter': 'vinter' };
+
+  const tagEls = [];
+  (t.difficulty || []).forEach(d => {
+    tagEls.push(`<span class="tag tag--diff-${escapeHTML(d)}" title="${T.svarighetsgrad}">${iconDiff}${T.niva} ${escapeHTML(d)}</span>`);
+  });
+  (t.seasons || []).forEach(s => {
+    tagEls.push(`<span class="tag tag--season-${seasonCls[s]}" title="${T.basta_tid}: ${escapeHTML(T[s] || s)}">${seasonIcon[s]}${escapeHTML(T[s] || s)}</span>`);
+  });
+  if (t.dog) {
+    tagEls.push(`<span class="tag tag--dog" title="${T.hund_titel}">${iconDog}${T.hund}</span>`);
+  }
+
+  const imgSrc = t.img ? escapeHTML(t.img) : '';
+  const imageHTML = imgSrc
+    ? `<img src="${imgSrc}" alt="${escapeHTML(t.title)}" loading="lazy" onerror="this.remove(); this.parentElement.classList.add('pc__image--fallback','pc__image--${t.cat}')"/>`
+    : '';
+  return `
+    <article class="pc pc--${t.cat}">
+      <div class="pc__image${imgSrc ? '' : ' pc__image--fallback pc__image--' + t.cat}">
+        ${imageHTML}
+      </div>
+      <div class="pc__body">
+        <div class="pc__kicker"><span class="dot"></span>${CAT_LABEL[t.cat]}</div>
+        <h2 class="pc__title">${escapeHTML(t.title)}</h2>
+        <p class="pc__meta">${iconPin}<span>${escapeHTML(t.region)}</span></p>
+        ${t.desc ? `<p class="pc__desc">${escapeHTML(t.desc)}</p>` : ''}
+        ${tagEls.length ? `<div class="pc__tags">${tagEls.join('')}</div>` : ''}
+        <a class="pc__cta" href="${escapeHTML(t.url)}" target="_blank" rel="noopener noreferrer">
+          ${T.las_mer} ${iconArrow}
+        </a>
+      </div>
+    </article>
+  `;
+}
+
+/* ======================================================================
+   Layer groups + cluster
+   ====================================================================== */
+let clusterGroup = null;
+const catLayers = { guidad: [], cykel: [], vandring: [] };
+const markerByTrip = new Map();
+
+function buildMarkers() {
+  // Clear existing
+  Object.keys(catLayers).forEach(k => {
+    catLayers[k].forEach(m => { if (m._map) m.remove(); });
+    catLayers[k] = [];
+  });
+  if (clusterGroup) { map.removeLayer(clusterGroup); clusterGroup = null; }
+  markerByTrip.clear();
+
+  const useCluster = TWEAKS.cluster === 'on';
+  if (useCluster) {
+    clusterGroup = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      maxClusterRadius: 45,
+      spiderfyOnMaxZoom: true,
+      disableClusteringAtZoom: 6
+    });
+  }
+
+  TRIPS.forEach(t => {
+    if (!catLayers[t.cat]) { console.warn('Unknown category:', t.cat, t.title); return; }
+    const m = L.marker([t.lat, t.lng], {
+      icon: makeIcon(t.cat, TWEAKS.marker),
+      title: t.title,
+      riseOnHover: true,
+      alt: `${t.title} – ${t.region}`
+    });
+    m.bindPopup(popupHTML(t), { maxWidth: 300, minWidth: 280, closeButton: true, autoPanPadding: [30, 30] });
+    m._cat = t.cat;
+    m._trip = t;
+    catLayers[t.cat].push(m);
+    markerByTrip.set(t.id, m);
+  });
+
+  applyFilter(); // puts them on the map
+}
+
+function getActive(sel, attr) {
+  return new Set(
+    Array.from(document.querySelectorAll(sel))
+      .filter(c => c.getAttribute('aria-pressed') === 'true')
+      .map(c => c.dataset[attr])
+  );
+}
+
+function applyFilter() {
+  const activeCats    = getActive('.chip[data-filter]', 'filter');
+  const seasonSel = document.getElementById('season-select');
+  const activeSeason = seasonSel ? seasonSel.value : '';
+  const diffSel = document.getElementById('diff-select');
+  const activeDiff = diffSel ? diffSel.value : '';
+  const activeFlags   = getActive('.chip[data-flag]',   'flag');
+
+  // Remove all first
+  Object.values(catLayers).flat().forEach(m => { if (m._map) m.remove(); });
+  if (clusterGroup) clusterGroup.clearLayers();
+
+  const selected = Object.values(catLayers).flat().filter(m => {
+    const t = m._trip;
+    if (!activeCats.has(t.cat)) return false;
+    if (activeSeason && !(t.seasons || []).includes(activeSeason)) return false;
+    if (activeDiff && !(t.difficulty || []).includes(activeDiff)) return false;
+    if (activeFlags.has('dog') && !t.dog) return false;
+    if (activeFlags.has('train') && !t.train) return false;
+    if (activeFlags.has('wine') && !t.wine) return false;
+    if (activeFlags.has('weekend') && !t.weekend) return false;
+    if (activeFlags.has('family') && !t.family) return false;
+    return true;
+  });
+
+  if (TWEAKS.cluster === 'on' && clusterGroup) {
+    clusterGroup.addLayers(selected);
+    clusterGroup.addTo(map);
+  } else {
+    selected.forEach(m => m.addTo(map));
+  }
+
+  const shown = document.getElementById('shown-count');
+  if (shown) shown.textContent = selected.length;
+}
+
+/* ======================================================================
+   Wire up legend chips
+   ====================================================================== */
+// Category chips — prevent turning all off
+document.querySelectorAll('.chip[data-filter]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const pressed = chip.getAttribute('aria-pressed') === 'true';
+    const othersOn = Array.from(document.querySelectorAll('.chip[data-filter]'))
+      .some(c => c !== chip && c.getAttribute('aria-pressed') === 'true');
+    if (pressed && !othersOn) {
+      chip.animate(
+        [{ transform: 'scale(1)' }, { transform: 'scale(1.06)' }, { transform: 'scale(1)' }],
+        { duration: 220 }
+      );
+      return;
+    }
+    chip.setAttribute('aria-pressed', String(!pressed));
+    applyFilter();
+  });
+});
+
+// Flag chips — simple toggle
+document.querySelectorAll('.chip[data-flag]').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const pressed = chip.getAttribute('aria-pressed') === 'true';
+    chip.setAttribute('aria-pressed', String(!pressed));
+    applyFilter();
+  });
+});
+
+// Dropdowns
+document.getElementById('season-select').addEventListener('change', applyFilter);
+document.getElementById('diff-select').addEventListener('change', applyFilter);
+
+// Reset all filters
+document.getElementById('resetFilters').addEventListener('click', () => {
+  document.querySelectorAll('.chip[data-filter]').forEach(c => c.setAttribute('aria-pressed', 'true'));
+  document.querySelectorAll('.chip[data-flag]').forEach(c => c.setAttribute('aria-pressed', 'false'));
+  document.getElementById('season-select').value = '';
+  document.getElementById('diff-select').value = '';
+  applyFilter();
+});
+
+// Counts
+(function setCounts() {
+  const counts = { guidad: 0, cykel: 0, vandring: 0 };
+  TRIPS.forEach(t => counts[t.cat]++);
+  Object.keys(counts).forEach(k => {
+    const el = document.getElementById('count-' + k);
+    if (el) el.textContent = counts[k];
+  });
+  const total = document.getElementById('total-count');
+  if (total) total.textContent = TRIPS.length;
+})();
+
+/* ======================================================================
+   Initial fit
+   ====================================================================== */
+function fitAll() {
+  // Zooma till de resor som syns just nu (t.ex. bara Guidade), annars alla
+  const synliga = Object.values(catLayers).flat()
+    .filter(m => m._map || (clusterGroup && clusterGroup.hasLayer(m)));
+  const pts = synliga.length ? synliga.map(m => m.getLatLng()) : TRIPS.map(t => [t.lat, t.lng]);
+  if (!pts.length) return;
+  map.invalidateSize();
+  map.fitBounds(L.latLngBounds(pts), { padding: [40, 40] });
+}
+
+/* ======================================================================
+   Förval via adressen (besökaren kan sedan ändra som vanligt):
+     ?kat=guidad            bara Guidade förvald (kat=cykel, kat=vandring, kat=guidad,cykel)
+     ?arstid=var            årstid förvald (var, sommar, host, vinter)
+     ?niva=2                nivå förvald (1, 2, 3 eller 4)
+   Å/ä/ö och orden på alla kartans språk fungerar också (sykkel, cycling, pyöräily,
+   sommer, spring, forår, kevät …).
+   Kan stå i kartans egen adress eller i adressen till sidan som bäddar in den.
+   ====================================================================== */
+(function forval() {
+  const las = namn => {
+    const egen = new URLSearchParams(location.search);
+    if (egen.has(namn)) return egen.get(namn) || '';
+    try { if (window.parent !== window) return new URLSearchParams(window.parent.location.search).get(namn) || ''; } catch (e) {}
+    return '';
+  };
+  const norm = v => v.toLowerCase().replace(/ø/g, 'o').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+  // Nycklarna är normaliserade: gemener, utan accenter (ø → o, ä → a, å → a).
+  const KAT = { guidad: 'guidad', guidade: 'guidad', guidede: 'guidad', guidet: 'guidad',
+    guided: 'guidad', guide: 'guidad', opastettu: 'guidad', opastetut: 'guidad',
+    cykel: 'cykel', cykla: 'cykel', sykkel: 'cykel', sykle: 'cykel', sykling: 'cykel',
+    cykling: 'cykel', cykle: 'cykel', cycling: 'cykel', cycle: 'cykel', bike: 'cykel', biking: 'cykel',
+    pyoraily: 'cykel', pyora: 'cykel',
+    vandring: 'vandring', vandra: 'vandring', vandre: 'vandring', vandringer: 'vandring',
+    walking: 'vandring', walk: 'vandring', hiking: 'vandring', hike: 'vandring',
+    vaellus: 'vandring', vaeltaminen: 'vandring', patikointi: 'vandring' };
+  const ARSTID = { var: 'Vår', sommar: 'Sommar', sommer: 'Sommar', host: 'Höst', vinter: 'Vinter',
+    forar: 'Vår', efterar: 'Höst',
+    spring: 'Vår', summer: 'Sommar', autumn: 'Höst', fall: 'Höst', winter: 'Vinter',
+    kevat: 'Vår', kesa: 'Sommar', syksy: 'Höst', talvi: 'Vinter' };
+  const NIVA = { 1: '1', 2: '2', 3: '3', 4: '4' };
+
+  const kat = new Set(las('kat').split(',').map(norm).map(v => KAT[v]).filter(Boolean));
+  if (kat.size) {
+    document.querySelectorAll('.chip[data-filter]').forEach(c => c.setAttribute('aria-pressed', String(kat.has(c.dataset.filter))));
+  }
+  const arstid = ARSTID[norm(las('arstid'))];
+  if (arstid) document.getElementById('season-select').value = arstid;
+  const niva = NIVA[norm(las('niva')).replace(/\D/g, '')]; // "2", "niva2", "nivå 2"
+  if (niva) document.getElementById('diff-select').value = niva;
+})();
+
+buildMarkers();
+map.whenReady(() => { map.invalidateSize(); fitAll(); });
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  map.closePopup();
+  fitAll();
+});
+
+/* ======================================================================
+   Tweaks protocol
+   ====================================================================== */
+const tweakPanel = document.getElementById('tweaks');
+
+// Utan CARTO-nyckel: markera CARTO-stilarna som otillgängliga i panelen
+(function annotateCartoOptions() {
+  if (CARTO_API_KEY) return;
+  const sel = document.getElementById('tw-tiles');
+  if (!sel) return;
+  ['positron', 'voyager', 'dark'].forEach(v => {
+    const opt = sel.querySelector(`option[value="${v}"]`);
+    if (!opt) return;
+    opt.disabled = true;
+    opt.textContent = opt.textContent.replace(/\)$/, ' – kräver nyckel)');
+  });
+  if (['positron', 'voyager', 'dark'].includes(TWEAKS.tiles)) TWEAKS.tiles = 'hot';
+})();
+
+function syncTweakControls() {
+  document.getElementById('tw-tiles').value    = TWEAKS.tiles;
+  document.getElementById('tw-marker').value   = TWEAKS.marker;
+  document.getElementById('tw-cluster').value  = TWEAKS.cluster;
+}
+syncTweakControls();
+
+function persist(edits) {
+  try {
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits }, '*');
+  } catch (e) {}
+}
+
+document.getElementById('tw-tiles').addEventListener('change', e => {
+  TWEAKS.tiles = e.target.value;
+  setTiles(TWEAKS.tiles);
+  persist({ tiles: TWEAKS.tiles });
+});
+document.getElementById('tw-marker').addEventListener('change', e => {
+  TWEAKS.marker = e.target.value;
+  buildMarkers();
+  persist({ marker: TWEAKS.marker });
+});
+document.getElementById('tw-cluster').addEventListener('change', e => {
+  TWEAKS.cluster = e.target.value;
+  buildMarkers();
+  persist({ cluster: TWEAKS.cluster });
+});
+
+// Edit mode — host toggle
+window.addEventListener('message', ev => {
+  if (!ev.data || typeof ev.data !== 'object') return;
+  if (ev.data.type === '__activate_edit_mode')   tweakPanel.classList.add('is-open');
+  if (ev.data.type === '__deactivate_edit_mode') tweakPanel.classList.remove('is-open');
+});
+try { window.parent.postMessage({ type: '__edit_mode_available' }, '*'); } catch(e) {}
+</script>
+</body>
+</html>
