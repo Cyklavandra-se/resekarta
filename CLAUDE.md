@@ -171,6 +171,11 @@ I den här ordningen, bara om destination saknas:
   `window.TRIPS = …;`, samma namn som idag) **och/eller** servera via en cachad REST-route. Statiska filer
   är snabbast på one.com.
 
+**Beslut (fas 2):** tillägget skriver sina filer i `uploads/resekarta/` (`resor-{lang}.js`, `karta.html`) i
+stället för `uploads/karta/`, så att kalkylarkets filer kan ligga kvar och jämföras under övergången
+(fliken Karta). Kartsidan byggs från `assets/map/karta.html` med biblioteken i `assets/map/vendor/`.
+Tilläggets `[resekarta]` slås på under Inställningar; `[resekarta_test]` fungerar alltid.
+
 ### 9. Kartan och kortkoden
 
 - Kartan i `referens/reskarta.html` återanvänds. Den visas i en iframe (isolerar den från Avadas CSS).

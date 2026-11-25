@@ -72,3 +72,22 @@ add_filter( 'wpml_object_id', function ( $id, $type = 'page', $return_original =
 	}
 	return $return_original ? $id : null;
 }, 10, 4 );
+
+// Test only: attachments created by build-site.php point at the live site's images.
+add_filter( 'wp_get_attachment_url', function ( $url, $id ) {
+	$live = get_post_meta( $id, '_live_url', true );
+	return $live ? $live : $url;
+}, 10, 2 );
+add_filter( 'wp_get_attachment_image_src', function ( $image, $id ) {
+	$live = get_post_meta( $id, '_live_url', true );
+	return $live ? array( $live, 1024, 683, false ) : $image;
+}, 10, 2 );
+
+// WPML's language switch for permalinks.
+add_action( 'wpml_switch_language', function ( $lang ) {
+	if ( null === $lang ) {
+		unset( $GLOBALS['fake_wpml_lang'] );
+	} else {
+		$GLOBALS['fake_wpml_lang'] = $lang;
+	}
+} );

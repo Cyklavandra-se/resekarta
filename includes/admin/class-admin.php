@@ -11,6 +11,8 @@ use CV_Resekarta\Destinations;
 use CV_Resekarta\Importer;
 use CV_Resekarta\Languages;
 use CV_Resekarta\List_Scanner;
+use CV_Resekarta\Map_Data;
+use CV_Resekarta\Shortcode;
 use CV_Resekarta\Settings;
 use CV_Resekarta\Tags;
 use CV_Resekarta\Trips;
@@ -29,6 +31,7 @@ final class Admin {
 	/** Sub pages (slug suffix => tab label, capability). The first is the menu row. */
 	const PAGES = array(
 		''              => array( 'Översikt', self::CAP_EDIT ),
+		'karta'         => array( 'Karta', self::CAP_EDIT ),
 		'destinationer' => array( 'Destinationer', self::CAP_EDIT ),
 		'regler'        => array( 'Destinationsregler', self::CAP_EDIT ),
 		'installningar' => array( 'Inställningar', self::CAP_SETTINGS ),
@@ -46,6 +49,8 @@ final class Admin {
 		add_action( 'admin_post_cvrk_save_settings', array( __CLASS__, 'handle_settings' ) );
 		add_action( 'admin_post_cvrk_import', array( __CLASS__, 'handle_import' ) );
 		add_action( 'admin_post_cvrk_scan', array( __CLASS__, 'handle_scan' ) );
+		add_action( 'admin_post_cvrk_rebuild', array( __CLASS__, 'handle_rebuild' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'shortcode_notice' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( PLUGIN_FILE ), array( __CLASS__, 'action_links' ) );
 	}
 
@@ -56,6 +61,7 @@ final class Admin {
 	public static function menu() {
 		$callbacks = array(
 			''              => 'page_overview',
+			'karta'         => 'page_map',
 			'destinationer' => 'page_destinations',
 			'regler'        => 'page_rules',
 			'installningar' => 'page_settings',
@@ -172,6 +178,11 @@ final class Admin {
 		include PLUGIN_DIR . '/includes/admin/views/overview.php';
 	}
 
+	public static function page_map() {
+		self::require_cap( self::CAP_EDIT );
+		include PLUGIN_DIR . '/includes/admin/views/map.php';
+	}
+
 	public static function page_destinations() {
 		self::require_cap( self::CAP_EDIT );
 		include PLUGIN_DIR . '/includes/admin/views/destinations.php';
@@ -234,6 +245,43 @@ final class Admin {
 		check_admin_referer( 'cvrk_scan' );
 		$report = List_Scanner::run();
 		self::redirect( self::url( '', array( 'cvrk_msg' => $report['ok'] ? 'scanned' : 'scan_failed' ) ) );
+	}
+
+	public static function handle_rebuild() {
+		self::require_cap( self::CAP_EDIT );
+		check_admin_referer( 'cvrk_rebuild' );
+		$report = Map_Data::build();
+		$back   = isset( $_POST['cvrk_back'] ) && 'karta' === $_POST['cvrk_back'] ? 'karta' : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+		self::redirect( self::url( $back, array( 'cvrk_msg' => $report['ok'] ? 'rebuilt' : 'rebuild_failed' ) ) );
+	}
+
+	/**
+	 * Warn when [resekarta] is registered by something else (the old snippet) while the plugin's
+	 * own shortcode is switched on – then both are active and the plugin's wins.
+	 */
+	public static function shortcode_notice() {
+		if ( ! current_user_can( self::CAP_SETTINGS ) || ! Shortcode::enabled() || ! Shortcode::other_owner() ) {
+			return;
+		}
+		self::notice(
+			sprintf(
+				'<strong>Resekarta:</strong> kortkoden [resekarta] registreras också av %s. Tillägget använder sin egen, men avaktivera det gamla kodstycket (det med <code>CYKLAVANDRA_KARTA_NYCKEL</code>) i Code Snippets så att de inte krockar.',
+				esc_html( Shortcode::other_owner() )
+			),
+			'warning'
+		);
+	}
+
+	/** "Bygg om kartan nu" button. */
+	public static function rebuild_button( $back = '' ) {
+		?>
+		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="cvrk-inline">
+			<?php wp_nonce_field( 'cvrk_rebuild' ); ?>
+			<input type="hidden" name="action" value="cvrk_rebuild">
+			<input type="hidden" name="cvrk_back" value="<?php echo esc_attr( $back ); ?>">
+			<button class="button button-primary">Bygg om kartan nu</button>
+		</form>
+		<?php
 	}
 
 	// ───────────── Helpers for the views ─────────────

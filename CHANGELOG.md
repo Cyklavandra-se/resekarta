@@ -1,5 +1,13 @@
 # Ändringslogg – Resekarta
 
+## 0.2.0 – fas 2: kartan
+- Kartdata byggs i tillägget för alla språk i WPML (svenska, norska, danska, finska, engelska – och nya språk automatiskt): namn, länk och SEO-beskrivning från resans sida på språket, annars den svenska. Destinationsnamn per språk.
+- Kartan ligger i tillägget med Leaflet, MapLibre och typsnittet buntade – inga skript från andra webbplatser. Knapptexter på danska, finska och engelska; språk utan egna texter visar engelska.
+- Förvalen (kat, arstid) förstår orden på alla språken, t.ex. cycling, pyöräily, spring, forår, kevät.
+- Kartan byggs om automatiskt när en resa eller dess översättning sparas, och med knappen Bygg om kartan nu.
+- Ny flik Karta: antal resor per språk, jämförelse med dagens karta från kalkylarket och förhandsvisning.
+- Kortkoden [resekarta] med samma inställningar som förut. Den slås på under Inställningar när kodstycket i Code Snippets är avstängt; till dess kan den nya kartan provas med [resekarta_test]. Varning om båda är aktiva.
+
 ## 0.1.3
 - Uppdateringar sköts nu av WordPress, som för de andra egna tilläggen: nya versioner hämtas från GitHub och visas under Tillägg och Kontrollpanel → Uppdateringar. Länken "Sök efter uppdatering" finns i tilläggslistan.
 

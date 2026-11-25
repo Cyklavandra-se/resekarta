@@ -169,6 +169,39 @@ foreach ( $extra as $lang => $list ) {
 	}
 }
 
+// AIOSEO stand-in: its table with the descriptions from the snapshot (column description).
+global $wpdb;
+$wpdb->query( "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}aioseo_posts ( id bigint unsigned NOT NULL AUTO_INCREMENT, post_id bigint unsigned NOT NULL, description text, PRIMARY KEY (id), KEY post_id (post_id) ) {$wpdb->get_charset_collate()}" );
+$wpdb->query( "TRUNCATE {$wpdb->prefix}aioseo_posts" );
+foreach ( $wpdb->get_results( "SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_test_seo_description'" ) as $row ) {
+	$wpdb->insert( $wpdb->prefix . 'aioseo_posts', array( 'post_id' => $row->post_id, 'description' => $row->meta_value ) );
+}
+echo 'AIOSEO descriptions: ' . $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->prefix}aioseo_posts" ) . "\n";
+
+// Featured images: attachments that point at the live site's image (see fake-wpml.php).
+$ii = array_search( 'Featured image', $header, true );
+$images = 0;
+foreach ( $rows as $r ) {
+	$sv = $local( $r[ $iu ] );
+	if ( ! $sv || empty( $r[ $ii ] ) || get_post_thumbnail_id( $sv ) ) {
+		continue;
+	}
+	$att = wp_insert_post( array( 'post_type' => 'attachment', 'post_status' => 'inherit', 'post_title' => basename( $r[ $ii ] ), 'post_mime_type' => 'image/jpeg', 'post_parent' => $sv ) );
+	update_post_meta( $att, '_live_url', $r[ $ii ] );
+	set_post_thumbnail( $sv, $att );
+	$images++;
+}
+echo "Featured images: $images\n";
+
+// The spreadsheet's current map files, for the comparison in Resekarta → Karta.
+$old_dir = wp_upload_dir()['basedir'] . '/karta';
+wp_mkdir_p( $old_dir );
+foreach ( array( 'sv', 'no' ) as $l ) {
+	if ( file_exists( $snap_dir . "/resor-$l.js" ) ) {
+		copy( $snap_dir . "/resor-$l.js", "$old_dir/resor-$l.js" );
+	}
+}
+
 if ( ! is_plugin_active( 'resekarta/resekarta.php' ) ) {
 	$res = activate_plugin( 'resekarta/resekarta.php' );
 	echo is_wp_error( $res ) ? 'Activation failed: ' . $res->get_error_message() . "\n" : "Resekarta activated\n";

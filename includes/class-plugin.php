@@ -14,6 +14,8 @@ final class Plugin {
 	public static function boot() {
 		add_action( 'init', array( Destinations::class, 'register' ) );
 		add_action( 'init', array( __CLASS__, 'load_textdomain' ) );
+		Map_Data::boot();
+		Shortcode::boot();
 
 		if ( is_admin() ) {
 			Admin\Admin::boot();

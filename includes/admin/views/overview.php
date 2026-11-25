@@ -86,6 +86,10 @@ $cvrk_scan = get_option( List_Scanner::LAST_SCAN_OPTION );
 	<?php
 	if ( 'scanned' === $cvrk_msg ) {
 		Admin::notice( 'Listsidorna är lästa.' );
+	} elseif ( 'rebuilt' === $cvrk_msg ) {
+		Admin::notice( 'Kartan är ombyggd.' );
+	} elseif ( 'rebuild_failed' === $cvrk_msg ) {
+		Admin::notice( 'Kartan kunde inte byggas om – se fliken Karta.', 'error' );
 	} elseif ( 'scan_failed' === $cvrk_msg ) {
 		Admin::notice( 'Listsidorna kunde inte läsas: ' . esc_html( is_array( $cvrk_scan ) ? $cvrk_scan['error'] : '' ), 'error' );
 	}
@@ -129,6 +133,7 @@ $cvrk_scan = get_option( List_Scanner::LAST_SCAN_OPTION );
 			<input type="hidden" name="action" value="cvrk_scan">
 			<button class="button">Läs listsidorna nu</button>
 		</form>
+		<?php Admin::rebuild_button(); ?>
 	</div>
 
 	<?php if ( is_array( $cvrk_scan ) && ! empty( $cvrk_scan['unresolved'] ) ) : ?>
@@ -246,5 +251,5 @@ $cvrk_scan = get_option( List_Scanner::LAST_SCAN_OPTION );
 			<?php endforeach; ?>
 		</tbody>
 	</table>
-	<p class="cvrk-muted">Redigering av resorna kommer i nästa version. Namn, bild, beskrivning och taggar läses alltid direkt från resans sida.</p>
+	<p class="cvrk-muted">Redigering av resorna kommer i en senare version. Namn, bild, beskrivning och taggar läses alltid direkt från resans sida.</p>
 </div>

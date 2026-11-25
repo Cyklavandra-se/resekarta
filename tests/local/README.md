@@ -16,4 +16,8 @@ Används bara under utvecklingen – följer inte med i `resekarta.zip`.
 php tests/local/build-site.php /path/to/wordpress /path/to/snapshot
 ```
 
+`build-site.php` lägger också in AIOSEO:s tabell `wp_aioseo_posts` med beskrivningarna, utvalda bilder
+(från kalkylarkets kolumn Featured image) och, om de finns i ögonblicksbilden, dagens kartfiler
+`resor-sv.js`/`resor-no.js` (från `/wp-content/uploads/karta/`) för jämförelsen under Resekarta → Karta.
+
 Enhetstesterna (ren logik, ingen WordPress) körs med `composer install && vendor/bin/phpunit`.

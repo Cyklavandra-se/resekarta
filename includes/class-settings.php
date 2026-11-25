@@ -37,6 +37,8 @@ final class Settings {
 				'cykel'    => '/cykla/cykla-pa-egen-hand/',
 				'vandring' => '/vandra/pa-egen-hand/',
 			),
+			// The plugin's [resekarta] is off until the old Code Snippets snippet is switched off.
+			'shortcode_enabled'   => false,
 			'delete_on_uninstall' => false,
 		);
 	}
@@ -78,6 +80,7 @@ final class Settings {
 			$out['list_pages'][ $cat ] = sanitize_text_field( $path );
 		}
 
+		$out['shortcode_enabled']   = ! empty( $in['shortcode_enabled'] );
 		$out['delete_on_uninstall'] = ! empty( $in['delete_on_uninstall'] );
 
 		return $out;

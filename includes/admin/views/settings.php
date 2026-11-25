@@ -77,6 +77,19 @@ $cvrk_msg = isset( $_GET['cvrk_msg'] ) ? sanitize_key( wp_unslash( $_GET['cvrk_m
 				</td>
 			</tr>
 			<tr>
+				<th scope="row">Kortkoden [resekarta]</th>
+				<td>
+					<label>
+						<input type="checkbox" name="cvrk[shortcode_enabled]" value="1" <?php checked( $cvrk_s['shortcode_enabled'] ); ?>>
+						Tillägget visar kartan för kortkoden [resekarta]
+					</label>
+					<p class="description">Kryssa i först när du har avaktiverat det gamla kodstycket för kartan i Code Snippets. Till dess kan du prova den nya kartan med kortkoden <code>[resekarta_test]</code> (samma inställningar, t.ex. <code>[resekarta_test tag="donau"]</code>) på en sida som inte är publicerad.</p>
+					<?php if ( \CV_Resekarta\Shortcode::other_owner() ) : ?>
+						<p class="description"><strong>Just nu registreras [resekarta] av <?php echo esc_html( \CV_Resekarta\Shortcode::other_owner() ); ?>.</strong></p>
+					<?php endif; ?>
+				</td>
+			</tr>
+			<tr>
 				<th scope="row">Avinstallation</th>
 				<td>
 					<label>
