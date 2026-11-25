@@ -1,8 +1,8 @@
 <?php
 /**
- * Plugin Name:       Resekarta
+ * Plugin Name:       Cykla & Vandra – Resekarta
  * Description:       Interaktiv karta över Cykla & Vandras resor på alla språk
- * Version:           0.1.1
+ * Version:           0.1.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Cykla & Vandra
@@ -16,7 +16,7 @@ namespace CV_Resekarta;
 
 defined( 'ABSPATH' ) || exit;
 
-const VERSION     = '0.1.1';
+const VERSION     = '0.1.2';
 const PLUGIN_FILE = __FILE__;
 const PLUGIN_DIR  = __DIR__;
 

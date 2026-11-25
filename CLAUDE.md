@@ -11,7 +11,7 @@ Den här filen är kravspecifikationen. Läs den hela innan du börjar, och föl
 | Vad | Namn |
 | --- | --- |
 | Repository | `Cyklavandra-se/resekarta` |
-| Pluginnamn (visas i WordPress) | **Resekarta** |
+| Pluginnamn (visas i WordPress) | **Cykla & Vandra – Resekarta** (som de andra egna tilläggen; i menyn Cykla&Vandra heter den bara Resekarta) |
 | Beskrivning | Interaktiv karta över Cykla & Vandras resor på alla språk |
 | Mapp, slug och text domain | `resekarta` (huvudfil `resekarta.php`) |
 | Prefix i kod | `cvrk_` för funktioner, options och meta; namespace/klasser `CV_Resekarta` |

@@ -1,5 +1,8 @@
 # Ändringslogg – Resekarta
 
+## 0.1.2
+- Tillägget heter nu **Cykla & Vandra – Resekarta** i listan över tillägg, så det hamnar bredvid de andra egna tilläggen.
+
 ## 0.1.1
 - Resekarta ligger nu i den gemensamma menyn **Cykla&Vandra**, med ett kort på översiktssidan, som de andra egna tilläggen.
 - En rad i menyn; Destinationer, Destinationsregler, Inställningar och Import nås via flikar överst på sidan.
