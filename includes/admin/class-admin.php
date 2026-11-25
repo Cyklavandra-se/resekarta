@@ -12,6 +12,7 @@ use CV_Resekarta\Importer;
 use CV_Resekarta\Languages;
 use CV_Resekarta\List_Scanner;
 use CV_Resekarta\Map_Data;
+use CV_Resekarta\Rules;
 use CV_Resekarta\Shortcode;
 use CV_Resekarta\Settings;
 use CV_Resekarta\Tags;
@@ -50,6 +51,11 @@ final class Admin {
 		add_action( 'admin_post_cvrk_import', array( __CLASS__, 'handle_import' ) );
 		add_action( 'admin_post_cvrk_scan', array( __CLASS__, 'handle_scan' ) );
 		add_action( 'admin_post_cvrk_rebuild', array( __CLASS__, 'handle_rebuild' ) );
+		add_action( 'admin_post_cvrk_save_destination', array( __CLASS__, 'handle_save_destination' ) );
+		add_action( 'admin_post_cvrk_delete_destination', array( __CLASS__, 'handle_delete_destination' ) );
+		add_action( 'admin_post_cvrk_save_rules', array( __CLASS__, 'handle_save_rules' ) );
+		add_action( 'wp_ajax_cvrk_quick_edit', array( __CLASS__, 'ajax_quick_edit' ) );
+		Trip_Box::boot();
 		add_action( 'admin_notices', array( __CLASS__, 'shortcode_notice' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( PLUGIN_FILE ), array( __CLASS__, 'action_links' ) );
 	}
@@ -159,6 +165,11 @@ final class Admin {
 			return;
 		}
 		wp_enqueue_style( 'cvrk-admin', plugins_url( 'assets/admin.css', PLUGIN_FILE ), array(), VERSION );
+		if ( false !== strpos( (string) $hook, self::SLUG . '-destinationer' ) ) {
+			self::enqueue_picker();
+		} else {
+			self::enqueue_admin_js();
+		}
 	}
 
 	public static function action_links( $links ) {
@@ -298,26 +309,7 @@ final class Admin {
 		$dest_all = Destinations::all();
 		$rows     = array();
 		foreach ( Trips::ids() as $id ) {
-			$trip   = Trips::get( $id );
-			$dest   = isset( $dest_all[ $trip['destination'] ] ) ? $dest_all[ $trip['destination'] ] : null;
-			$status = Trips::map_status( $trip, $dest );
-			$slugs  = Trips::tag_slugs( $id );
-			$cover  = array();
-			foreach ( $codes as $code ) {
-				if ( $code === $default ) {
-					continue;
-				}
-				$tid            = $langs->translation_id( $id, $code );
-				$cover[ $code ] = $tid && 'publish' === get_post_status( $tid ) ? $tid : 0;
-			}
-			$rows[] = array(
-				'trip'   => $trip,
-				'dest'   => $dest,
-				'status' => $status,
-				'levels' => Tags::levels( $slugs ),
-				'langs'  => $cover,
-				'action' => Trips::needs_action( $trip, $status ),
-			);
+			$rows[] = self::overview_row( $id, $dest_all );
 		}
 		usort(
 			$rows,
@@ -326,6 +318,236 @@ final class Admin {
 			}
 		);
 		return $rows;
+	}
+
+	/**
+	 * Data for one overview row.
+	 *
+	 * @param int        $id       Trip page ID.
+	 * @param array|null $dest_all Destinations::all(), to avoid reading them per row.
+	 */
+	public static function overview_row( $id, $dest_all = null ) {
+		$langs    = Languages::instance();
+		$default  = $langs->default_code();
+		$trip     = Trips::get( $id );
+		$dest     = null;
+		if ( null === $dest_all ) {
+			$dest = Destinations::get( $trip['destination'] );
+		} elseif ( isset( $dest_all[ $trip['destination'] ] ) ) {
+			$dest = $dest_all[ $trip['destination'] ];
+		}
+		$status = Trips::map_status( $trip, $dest );
+		$cover  = array();
+		foreach ( $langs->codes() as $code ) {
+			if ( $code === $default ) {
+				continue;
+			}
+			$tid            = $langs->translation_id( $id, $code );
+			$cover[ $code ] = $tid && 'publish' === get_post_status( $tid ) ? $tid : 0;
+		}
+		return array(
+			'trip'   => $trip,
+			'dest'   => $dest,
+			'status' => $status,
+			'levels' => Tags::levels( Trips::tag_slugs( $id ) ),
+			'langs'  => $cover,
+			'action' => Trips::needs_action( $trip, $status ),
+		);
+	}
+
+	/** Print one overview row. */
+	public static function render_row( array $cvrk_r, array $cvrk_codes ) {
+		include PLUGIN_DIR . '/includes/admin/views/overview-row.php';
+	}
+
+	/** Quick edit in the overview: save and return the new row. */
+	public static function ajax_quick_edit() {
+		check_ajax_referer( 'cvrk_quick_edit', 'nonce' );
+		$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+		if ( ! $id || ! current_user_can( 'edit_page', $id ) || ! Trips::is_trip( $id ) ) {
+			wp_send_json_error( array( 'message' => 'Behörighet saknas.' ), 403 );
+		}
+		$in   = wp_unslash( $_POST ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- validated in Trips::update().
+		$data = array(
+			'category'   => isset( $in['category'] ) ? $in['category'] : '',
+			'visibility' => isset( $in['visibility'] ) ? $in['visibility'] : 'auto',
+			'lat'        => isset( $in['lat'] ) ? $in['lat'] : '',
+			'lng'        => isset( $in['lng'] ) ? $in['lng'] : '',
+			'check_done' => ! empty( $in['check_done'] ),
+		);
+		$dest = isset( $in['destination'] ) ? (string) $in['destination'] : '0';
+		if ( 'new' === $dest ) {
+			$dest = self::create_destination_from_input( isset( $in['new_destination'] ) ? $in['new_destination'] : '' );
+			if ( is_wp_error( $dest ) ) {
+				wp_send_json_error( array( 'message' => $dest->get_error_message() ) );
+			}
+		}
+		$data['destination'] = (int) $dest;
+		$res                 = Trips::update( $id, $data );
+		if ( is_wp_error( $res ) ) {
+			wp_send_json_error( array( 'message' => $res->get_error_message() ) );
+		}
+		$langs = Languages::instance();
+		ob_start();
+		self::render_row( self::overview_row( $id ), array_values( array_diff( $langs->codes(), array( $langs->default_code() ) ) ) );
+		wp_send_json_success( array( 'html' => ob_get_clean() ) );
+	}
+
+	/**
+	 * Use an existing destination with this name, or create it (without coordinates).
+	 *
+	 * @return int|\WP_Error
+	 */
+	public static function create_destination_from_input( $name ) {
+		$name = trim( sanitize_text_field( (string) $name ) );
+		if ( '' === $name ) {
+			return new \WP_Error( 'cvrk_empty', 'Skriv ett namn på den nya destinationen.' );
+		}
+		$id = Destinations::find_by_name( $name );
+		return $id ? $id : Destinations::create( $name );
+	}
+
+	/**
+	 * A <select> with all destinations (and optionally "Ny destination…").
+	 */
+	public static function destination_select( $name, $selected, $id = '', $allow_new = false ) {
+		static $dests = null;
+		if ( null === $dests ) {
+			$dests = Destinations::all();
+		}
+		printf( '<select name="%s"%s class="cvrk-dest-select">', esc_attr( $name ), $id ? ' id="' . esc_attr( $id ) . '"' : '' );
+		echo '<option value="0">– ingen –</option>';
+		foreach ( $dests as $d ) {
+			printf(
+				'<option value="%d"%s>%s%s</option>',
+				(int) $d['id'],
+				selected( (int) $selected, (int) $d['id'], false ),
+				esc_html( $d['name'] ),
+				Destinations::has_point( $d ) ? '' : ' (saknar koordinater)'
+			);
+		}
+		if ( $allow_new ) {
+			echo '<option value="new">+ Ny destination…</option>';
+		}
+		echo '</select>';
+	}
+
+	/**
+	 * A small map for choosing a point. It works on the inputs .cvrk-lat and .cvrk-lng in the
+	 * nearest .cvrk-point. $fallback is shown as a grey point (e.g. the destination's).
+	 */
+	public static function picker( $fallback = null, $hint = '' ) {
+		printf(
+			'<div class="cvrk-picker"%s></div>',
+			$fallback ? sprintf( ' data-fallback-lat="%s" data-fallback-lng="%s"', esc_attr( $fallback[0] ), esc_attr( $fallback[1] ) ) : ''
+		);
+		if ( $hint ) {
+			echo '<p class="description">' . esc_html( $hint ) . '</p>';
+		}
+	}
+
+	/** Leaflet (from the map's bundled libraries) and admin.js. */
+	public static function enqueue_picker() {
+		$vendor = plugins_url( 'assets/map/vendor/', PLUGIN_FILE );
+		wp_enqueue_style( 'cvrk-leaflet', $vendor . 'leaflet/leaflet.css', array(), '1.9.4' );
+		wp_enqueue_script( 'cvrk-leaflet', $vendor . 'leaflet/leaflet.js', array(), '1.9.4', true );
+		self::enqueue_admin_js( array( 'cvrk-leaflet' ) );
+		wp_enqueue_style( 'cvrk-admin', plugins_url( 'assets/admin.css', PLUGIN_FILE ), array(), VERSION );
+	}
+
+	public static function enqueue_admin_js( array $deps = array() ) {
+		wp_enqueue_script( 'cvrk-admin', plugins_url( 'assets/admin.js', PLUGIN_FILE ), array_merge( array( 'jquery', 'jquery-ui-sortable' ), $deps ), VERSION, true );
+		wp_localize_script(
+			'cvrk-admin',
+			'cvrkAdmin',
+			array(
+				'ajax'   => admin_url( 'admin-ajax.php' ),
+				'tiles'  => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+				'attrib' => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+				'texts'  => array(
+					'saveError'   => 'Kunde inte spara.',
+					'confirmDel'  => 'Ta bort destinationen? Resor som har den får ingen destination, och regler som pekar på den tas bort.',
+					'noMatch'     => 'Ingen regel passar – dagsprogrammet prövas sedan.',
+					'match'       => 'Regel %1$s: "%2$s" → %3$s',
+					'checked'     => 'Markerad som kontrollerad.',
+				),
+			)
+		);
+	}
+
+	// ───────────── Destinations and rules: form handlers ─────────────
+
+	public static function handle_save_destination() {
+		self::require_cap( self::CAP_EDIT );
+		check_admin_referer( 'cvrk_save_destination' );
+		$in   = isset( $_POST['cvrk_dest'] ) && is_array( $_POST['cvrk_dest'] ) ? wp_unslash( $_POST['cvrk_dest'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- sanitized in Destinations.
+		$id   = isset( $in['id'] ) ? (int) $in['id'] : 0;
+		$name = isset( $in['name'] ) ? (string) $in['name'] : '';
+		$data = array(
+			'lat'      => isset( $in['lat'] ) ? $in['lat'] : '',
+			'lng'      => isset( $in['lng'] ) ? $in['lng'] : '',
+			'keywords' => isset( $in['keywords'] ) ? $in['keywords'] : '',
+			'names'    => isset( $in['names'] ) && is_array( $in['names'] ) ? $in['names'] : array(),
+		);
+		$lat = Destinations::coordinate( $data['lat'], 90 );
+		$lng = Destinations::coordinate( $data['lng'], 180 );
+		$err = '';
+		if ( ( '' !== trim( (string) $data['lat'] ) || '' !== trim( (string) $data['lng'] ) ) && ( null === $lat || null === $lng ) ) {
+			$err = 'Fyll i både Lat (−90 till 90) och Lng (−180 till 180), t.ex. 42.5063 och 1.5218 – eller lämna båda tomma.';
+		} elseif ( $id ) {
+			$res = Destinations::rename( $id, $name );
+			if ( is_wp_error( $res ) ) {
+				$err = $res->get_error_message();
+			} else {
+				Destinations::update( $id, $data, true );
+			}
+		} else {
+			if ( Destinations::find_by_name( $name ) ) {
+				$err = 'Det finns redan en destination som heter ' . sanitize_text_field( $name ) . '.';
+			} else {
+				$res = Destinations::create( $name, $data );
+				if ( is_wp_error( $res ) ) {
+					$err = $res->get_error_message();
+				} else {
+					$id = $res;
+				}
+			}
+		}
+		if ( $err ) {
+			set_transient( 'cvrk_form_error_' . get_current_user_id(), array( 'message' => $err, 'input' => $in ), 300 );
+			self::redirect( self::url( 'destinationer', $id ? array( 'redigera' => $id ) : array( 'ny' => 1 ) ) );
+		}
+		do_action( 'cvrk_trips_changed', 'destination' );
+		self::redirect( self::url( 'destinationer', array( 'cvrk_msg' => 'saved', 'markerad' => $id ) ) . '#cvrk-dest-' . $id );
+	}
+
+	public static function handle_delete_destination() {
+		self::require_cap( self::CAP_EDIT );
+		$id = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+		check_admin_referer( 'cvrk_delete_destination_' . $id );
+		$res = Destinations::delete( $id );
+		if ( is_wp_error( $res ) ) {
+			self::redirect( self::url( 'destinationer', array( 'cvrk_msg' => 'delete_failed' ) ) );
+		}
+		do_action( 'cvrk_trips_changed', 'destination' );
+		self::redirect( self::url( 'destinationer', array( 'cvrk_msg' => 'deleted', 'resor' => $res['trips'], 'regler' => $res['rules'] ) ) );
+	}
+
+	public static function handle_save_rules() {
+		self::require_cap( self::CAP_EDIT );
+		check_admin_referer( 'cvrk_save_rules' );
+		$in    = isset( $_POST['cvrk_rules'] ) && is_array( $_POST['cvrk_rules'] ) ? wp_unslash( $_POST['cvrk_rules'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- sanitized in Rules::save().
+		$rules = array();
+		foreach ( $in as $r ) {
+			if ( is_array( $r ) ) {
+				$rules[] = array(
+					'keyword'     => isset( $r['keyword'] ) ? (string) $r['keyword'] : '',
+					'destination' => isset( $r['destination'] ) ? (int) $r['destination'] : 0,
+				);
+			}
+		}
+		$saved = Rules::save( $rules );
+		self::redirect( self::url( 'regler', array( 'cvrk_msg' => 'saved', 'antal' => count( $saved ) ) ) );
 	}
 
 	public static function notice( $text, $type = 'success' ) {

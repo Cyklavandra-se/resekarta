@@ -1,5 +1,12 @@
 # Ändringslogg – Resekarta
 
+## 0.3.0 – fas 3: redigering
+- Rutan **Resekarta** på resans sida (bara svenska sidor): kategori (Auto eller egen), synlighet, destination (välj eller skapa ny), egen punkt med en liten karta att klicka eller dra i, och knappen Markera som kontrollerad. Visar om resan är på kartan och varför inte. På andra sidor: en ruta för att lägga till sidan på kartan.
+- **Snabbredigera** i översikten: kategori, synlighet, destination, egen punkt och Kontrollera – direkt i tabellen.
+- **Destinationer**: lägga till, ändra och ta bort, med namn per språk och en karta för punkten. Filter för destinationer som saknar koordinater eller inte används.
+- **Destinationsregler**: redigerbar lista – dra för att ändra ordningen, lägg till och ta bort. Prova ett resenamn och se vilken regel som slår till.
+- Kartan byggs om automatiskt efter varje ändring.
+
 ## 0.2.0 – fas 2: kartan
 - Kartdata byggs i tillägget för alla språk i WPML (svenska, norska, danska, finska, engelska – och nya språk automatiskt): namn, länk och SEO-beskrivning från resans sida på språket, annars den svenska. Destinationsnamn per språk.
 - Kartan ligger i tillägget med Leaflet, MapLibre och typsnittet buntade – inga skript från andra webbplatser. Knapptexter på danska, finska och engelska; språk utan egna texter visar engelska.
