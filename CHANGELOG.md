@@ -1,5 +1,9 @@
 # Ändringslogg – Resekarta
 
+## 1.0.0 – fas 5: övergång
+- Ny flik **Övergång** med checklistan för bytet från kalkylarket och kodstycket. Stegen bockas av av sig själva: import, jämförelse med dagens karta, bytet av kortkod (med knapp för att slå på – och tillbaka), alla sidor som visar kartan (även i Avadas Code Block) med länkar för kontroll, kalkylarkets nattkörning, och städning av de gamla kartfilerna.
+- README med bruksanvisning på svenska.
+
 ## 0.4.0 – fas 4: automatik
 - **Nattkörning** omkring kl 03 (sajtens tidszon): läser listsidorna, ger nya resor kategori och destination, hämtar saknade koordinater och bygger om kartan. När en ny sida publiceras görs samma sak efter ett par minuter.
 - **Destination för nya resor**: först destinationsreglerna, sedan dagsprogrammet ("Dag 4 – Sorteny"; dagarna i mitten först, vid "A till B" prövas B först). Gissade destinationer flaggas Kontrollera. Hittas ingen flaggas resan och visas inte på kartan.

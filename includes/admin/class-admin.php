@@ -38,6 +38,7 @@ final class Admin {
 		'regler'        => array( 'Destinationsregler', self::CAP_EDIT ),
 		'installningar' => array( 'Inställningar', self::CAP_SETTINGS ),
 		'import'        => array( 'Import', self::CAP_SETTINGS ),
+		'overgang'      => array( 'Övergång', self::CAP_SETTINGS ),
 	);
 
 	public static function boot() {
@@ -53,6 +54,8 @@ final class Admin {
 		add_action( 'admin_post_cvrk_scan', array( __CLASS__, 'handle_scan' ) );
 		add_action( 'admin_post_cvrk_rebuild', array( __CLASS__, 'handle_rebuild' ) );
 		add_action( 'admin_post_cvrk_test_mail', array( __CLASS__, 'handle_test_mail' ) );
+		add_action( 'admin_post_cvrk_toggle_shortcode', array( __CLASS__, 'handle_toggle_shortcode' ) );
+		add_action( 'admin_post_cvrk_delete_old_files', array( __CLASS__, 'handle_delete_old_files' ) );
 		add_action( 'admin_post_cvrk_save_destination', array( __CLASS__, 'handle_save_destination' ) );
 		add_action( 'admin_post_cvrk_delete_destination', array( __CLASS__, 'handle_delete_destination' ) );
 		add_action( 'admin_post_cvrk_save_rules', array( __CLASS__, 'handle_save_rules' ) );
@@ -74,6 +77,7 @@ final class Admin {
 			'regler'        => 'page_rules',
 			'installningar' => 'page_settings',
 			'import'        => 'page_import',
+			'overgang'      => 'page_transition',
 		);
 		foreach ( self::PAGES as $key => $page ) {
 			add_submenu_page(
@@ -196,6 +200,11 @@ final class Admin {
 		include PLUGIN_DIR . '/includes/admin/views/map.php';
 	}
 
+	public static function page_transition() {
+		self::require_cap( self::CAP_SETTINGS );
+		include PLUGIN_DIR . '/includes/admin/views/transition.php';
+	}
+
 	public static function page_destinations() {
 		self::require_cap( self::CAP_EDIT );
 		include PLUGIN_DIR . '/includes/admin/views/destinations.php';
@@ -259,6 +268,28 @@ final class Admin {
 		$report = Automation::run( array( 'mail' => false, 'source' => 'knappen' ) );
 		$ok     = ! empty( $report['scan']['ok'] );
 		self::redirect( self::url( '', array( 'cvrk_msg' => $ok ? 'scanned' : 'scan_failed' ) ) );
+	}
+
+	/** Switch the plugin's [resekarta] on or off (also the way back, if something is wrong). */
+	public static function handle_toggle_shortcode() {
+		self::require_cap( self::CAP_SETTINGS );
+		check_admin_referer( 'cvrk_toggle_shortcode' );
+		$on       = ! empty( $_POST['on'] );
+		$settings = Settings::all();
+		$settings['shortcode_enabled'] = $on;
+		update_option( Settings::OPTION, $settings, false );
+		self::redirect( self::url( 'overgang', array( 'cvrk_msg' => $on ? 'shortcode_on' : 'shortcode_off' ) ) );
+	}
+
+	public static function handle_delete_old_files() {
+		self::require_cap( self::CAP_SETTINGS );
+		check_admin_referer( 'cvrk_delete_old_files' );
+		$res = \CV_Resekarta\Transition::delete_old_files();
+		if ( is_wp_error( $res ) ) {
+			set_transient( 'cvrk_form_error_' . get_current_user_id(), array( 'message' => $res->get_error_message() ), 300 );
+			self::redirect( self::url( 'overgang', array( 'cvrk_msg' => 'delete_failed' ) ) );
+		}
+		self::redirect( self::url( 'overgang', array( 'cvrk_msg' => 'old_deleted', 'antal' => count( $res ) ) ) );
 	}
 
 	public static function handle_test_mail() {
