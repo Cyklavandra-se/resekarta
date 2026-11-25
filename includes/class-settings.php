@@ -23,6 +23,7 @@ final class Settings {
 
 	const GEOCODERS = array(
 		'nominatim' => 'OpenStreetMap Nominatim (gratis)',
+		'google'    => 'Google Geocoding (kräver nyckel)',
 	);
 
 	public static function defaults() {
@@ -30,6 +31,7 @@ final class Settings {
 			'notify_email'    => get_option( 'admin_email' ),
 			'geocode_contact' => get_option( 'admin_email' ),
 			'geocoder'        => 'nominatim',
+			'google_key'      => '',
 			'map_style'       => 'bright',
 			// Category => list page path (relative to the site's home, Swedish).
 			'list_pages'      => array(
@@ -67,6 +69,8 @@ final class Settings {
 
 		$geocoder        = isset( $in['geocoder'] ) ? sanitize_key( $in['geocoder'] ) : 'nominatim';
 		$out['geocoder'] = isset( self::GEOCODERS[ $geocoder ] ) ? $geocoder : 'nominatim';
+
+		$out['google_key'] = isset( $in['google_key'] ) ? preg_replace( '/[^A-Za-z0-9_\-]/', '', (string) $in['google_key'] ) : '';
 
 		$style            = isset( $in['map_style'] ) ? sanitize_key( $in['map_style'] ) : 'bright';
 		$out['map_style'] = isset( self::MAP_STYLES[ $style ] ) ? $style : 'bright';

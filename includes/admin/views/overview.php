@@ -85,7 +85,29 @@ $cvrk_scan = get_option( List_Scanner::LAST_SCAN_OPTION );
 
 	<?php
 	if ( 'scanned' === $cvrk_msg ) {
-		Admin::notice( 'Listsidorna är lästa.' );
+		$cvrk_run = get_option( \CV_Resekarta\Automation::LAST_RUN );
+		$cvrk_txt = 'Listsidorna är lästa.';
+		if ( is_array( $cvrk_run ) ) {
+			if ( $cvrk_run['new'] ) {
+				$cvrk_lines = array();
+				foreach ( $cvrk_run['new'] as $cvrk_t ) {
+					$cvrk_lines[] = esc_html( $cvrk_t['title'] . ' → ' . ( '' !== $cvrk_t['destination'] ? $cvrk_t['destination'] : 'ingen destination' ) . ( 'program' === $cvrk_t['how'] ? ' (gissad – kontrollera)' : '' ) );
+				}
+				$cvrk_txt .= ' Nya resor: <br>' . implode( '<br>', $cvrk_lines );
+			} else {
+				$cvrk_txt .= ' Inga nya resor.';
+			}
+			foreach ( $cvrk_run['geocoded'] as $cvrk_name => $cvrk_point ) {
+				$cvrk_txt .= '<br>Koordinater hämtade för ' . esc_html( $cvrk_name ) . ' (' . esc_html( $cvrk_point ) . ').';
+			}
+			foreach ( $cvrk_run['not_found'] as $cvrk_name => $cvrk_why ) {
+				$cvrk_txt .= '<br><span class="cvrk-warn">' . esc_html( $cvrk_name . ' – ' . $cvrk_why ) . '</span>';
+			}
+			foreach ( $cvrk_run['errors'] as $cvrk_e ) {
+				$cvrk_txt .= '<br><span class="cvrk-warn">' . esc_html( $cvrk_e ) . '</span>';
+			}
+		}
+		Admin::notice( $cvrk_txt );
 	} elseif ( 'rebuilt' === $cvrk_msg ) {
 		Admin::notice( 'Kartan är ombyggd.' );
 	} elseif ( 'rebuild_failed' === $cvrk_msg ) {
@@ -131,7 +153,7 @@ $cvrk_scan = get_option( List_Scanner::LAST_SCAN_OPTION );
 		<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="cvrk-inline">
 			<?php wp_nonce_field( 'cvrk_scan' ); ?>
 			<input type="hidden" name="action" value="cvrk_scan">
-			<button class="button">Läs listsidorna nu</button>
+			<button class="button" title="Läser listsidorna, ger nya resor destination, hämtar saknade koordinater och bygger om kartan – som nattkörningen, men utan mejl.">Sök efter nya resor nu</button>
 		</form>
 		<?php Admin::rebuild_button(); ?>
 	</div>

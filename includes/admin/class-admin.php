@@ -7,6 +7,7 @@
 
 namespace CV_Resekarta\Admin;
 
+use CV_Resekarta\Automation;
 use CV_Resekarta\Destinations;
 use CV_Resekarta\Importer;
 use CV_Resekarta\Languages;
@@ -51,6 +52,7 @@ final class Admin {
 		add_action( 'admin_post_cvrk_import', array( __CLASS__, 'handle_import' ) );
 		add_action( 'admin_post_cvrk_scan', array( __CLASS__, 'handle_scan' ) );
 		add_action( 'admin_post_cvrk_rebuild', array( __CLASS__, 'handle_rebuild' ) );
+		add_action( 'admin_post_cvrk_test_mail', array( __CLASS__, 'handle_test_mail' ) );
 		add_action( 'admin_post_cvrk_save_destination', array( __CLASS__, 'handle_save_destination' ) );
 		add_action( 'admin_post_cvrk_delete_destination', array( __CLASS__, 'handle_delete_destination' ) );
 		add_action( 'admin_post_cvrk_save_rules', array( __CLASS__, 'handle_save_rules' ) );
@@ -254,8 +256,16 @@ final class Admin {
 	public static function handle_scan() {
 		self::require_cap( self::CAP_EDIT );
 		check_admin_referer( 'cvrk_scan' );
-		$report = List_Scanner::run();
-		self::redirect( self::url( '', array( 'cvrk_msg' => $report['ok'] ? 'scanned' : 'scan_failed' ) ) );
+		$report = Automation::run( array( 'mail' => false, 'source' => 'knappen' ) );
+		$ok     = ! empty( $report['scan']['ok'] );
+		self::redirect( self::url( '', array( 'cvrk_msg' => $ok ? 'scanned' : 'scan_failed' ) ) );
+	}
+
+	public static function handle_test_mail() {
+		self::require_cap( self::CAP_SETTINGS );
+		check_admin_referer( 'cvrk_test_mail' );
+		$to = Automation::send_test_mail();
+		self::redirect( self::url( 'installningar', array( 'cvrk_msg' => $to ? 'mail_sent' : 'mail_failed' ) ) );
 	}
 
 	public static function handle_rebuild() {

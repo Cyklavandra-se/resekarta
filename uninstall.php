@@ -34,6 +34,9 @@ foreach ( (array) glob( $cvrk_dir . '*' ) as $cvrk_file ) {
 }
 @rmdir( $cvrk_dir ); // phpcs:ignore WordPress.PHP.NoSilencedErrors, WordPress.WP.AlternativeFunctions
 
-foreach ( array( 'cvrk_settings', 'cvrk_rules', 'cvrk_last_scan', 'cvrk_import_report', 'cvrk_map_build', 'cvrk_map_error', 'cvrk_gh_release', 'cvrk_gh_status' ) as $cvrk_option ) {
+// Cached geocoding answers.
+$wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_cvrk\\_geo\\_%' OR option_name LIKE '\\_transient\\_timeout\\_cvrk\\_geo\\_%'" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+
+foreach ( array( 'cvrk_settings', 'cvrk_rules', 'cvrk_last_scan', 'cvrk_import_report', 'cvrk_map_build', 'cvrk_map_error', 'cvrk_gh_release', 'cvrk_gh_status', 'cvrk_last_run', 'cvrk_reported_problems', 'cvrk_geo_last_call' ) as $cvrk_option ) {
 	delete_option( $cvrk_option );
 }

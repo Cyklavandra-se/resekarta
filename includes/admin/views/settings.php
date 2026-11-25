@@ -22,6 +22,10 @@ $cvrk_msg = isset( $_GET['cvrk_msg'] ) ? sanitize_key( wp_unslash( $_GET['cvrk_m
 	<?php
 	if ( 'saved' === $cvrk_msg ) {
 		Admin::notice( 'Inställningarna är sparade.' );
+	} elseif ( 'mail_sent' === $cvrk_msg ) {
+		Admin::notice( 'Testmejlet är skickat till ' . esc_html( $cvrk_s['notify_email'] ) . '.' );
+	} elseif ( 'mail_failed' === $cvrk_msg ) {
+		Admin::notice( 'Testmejlet kunde inte skickas. Kontrollera adressen, och att sajten kan skicka mejl (t.ex. kontaktformulären).', 'error' );
 	}
 	?>
 	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -50,6 +54,13 @@ $cvrk_msg = isset( $_GET['cvrk_msg'] ) ? sanitize_key( wp_unslash( $_GET['cvrk_m
 							<option value="<?php echo esc_attr( $cvrk_key ); ?>" <?php selected( $cvrk_s['geocoder'], $cvrk_key ); ?>><?php echo esc_html( $cvrk_label ); ?></option>
 						<?php endforeach; ?>
 					</select>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><label for="cvrk-google">Google-nyckel</label></th>
+				<td>
+					<input type="text" class="regular-text code" id="cvrk-google" name="cvrk[google_key]" value="<?php echo esc_attr( $cvrk_s['google_key'] ); ?>" autocomplete="off">
+					<p class="description">Behövs bara om du väljer Google Geocoding ovan. OpenStreetMap behöver ingen nyckel.</p>
 				</td>
 			</tr>
 			<tr>
@@ -101,5 +112,33 @@ $cvrk_msg = isset( $_GET['cvrk_msg'] ) ? sanitize_key( wp_unslash( $_GET['cvrk_m
 			</tr>
 		</table>
 		<?php submit_button( 'Spara inställningar' ); ?>
+	</form>
+
+	<h2>Nattkörning</h2>
+	<?php
+	$cvrk_next = wp_next_scheduled( \CV_Resekarta\Automation::NIGHTLY );
+	$cvrk_run  = get_option( \CV_Resekarta\Automation::LAST_RUN );
+	?>
+	<p>Varje natt omkring kl 03 läser tillägget listsidorna, ger nya resor kategori och destination (först destinationsreglerna, sedan dagsprogrammet), hämtar saknade koordinater från <?php echo esc_html( \CV_Resekarta\Settings::GEOCODERS[ $cvrk_s['geocoder'] ] ); ?> och bygger om kartan. Du får mejl bara när något hänt: nya resor, eller något som gick fel. När en ny sida publiceras görs samma sak efter ett par minuter.</p>
+	<ul class="cvrk-list">
+		<li>Nästa körning: <?php echo $cvrk_next ? esc_html( wp_date( 'j M Y H:i', $cvrk_next ) ) : '<span class="cvrk-warn">inte schemalagd</span>'; ?></li>
+		<li>Senaste körning:
+			<?php
+			if ( is_array( $cvrk_run ) ) {
+				echo esc_html( mysql2date( 'j M Y H:i', $cvrk_run['time'] ) . ' (' . $cvrk_run['source'] . '): ' . count( $cvrk_run['new'] ) . ' nya resor' );
+				echo $cvrk_run['errors'] ? ' – <span class="cvrk-warn">' . esc_html( implode( ' ', $cvrk_run['errors'] ) ) . '</span>' : ' – inga fel';
+				echo ! empty( $cvrk_run['mailed'] ) ? esc_html( ', mejl skickat' ) : '';
+			} else {
+				echo 'ingen ännu';
+			}
+			?>
+		</li>
+	</ul>
+	<p class="description">På one.com körs WordPress schemalagda jobb bara när någon besöker sajten. Det räcker oftast, men vill du vara säker kan du lägga in ett schemalagt anrop (cron) i one.com:s kontrollpanel till <code><?php echo esc_html( site_url( 'wp-cron.php?doing_wp_cron' ) ); ?></code>, t.ex. var 15:e minut.</p>
+	<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+		<?php wp_nonce_field( 'cvrk_test_mail' ); ?>
+		<input type="hidden" name="action" value="cvrk_test_mail">
+		<button class="button">Skicka testmejl</button>
+		<span class="cvrk-muted">Visar hur mejlet om nya resor ser ut.</span>
 	</form>
 </div>
