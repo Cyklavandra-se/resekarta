@@ -1,5 +1,12 @@
 # Ändringslogg – Resekarta
 
+## 0.4.0 – fas 4: automatik
+- **Nattkörning** omkring kl 03 (sajtens tidszon): läser listsidorna, ger nya resor kategori och destination, hämtar saknade koordinater och bygger om kartan. När en ny sida publiceras görs samma sak efter ett par minuter.
+- **Destination för nya resor**: först destinationsreglerna, sedan dagsprogrammet ("Dag 4 – Sorteny"; dagarna i mitten först, vid "A till B" prövas B först). Gissade destinationer flaggas Kontrollera. Hittas ingen flaggas resan och visas inte på kartan.
+- **Koordinater** hämtas automatiskt från OpenStreetMap (högst ett uppslag per sekund, svaren sparas) – bara för destinationer som en resa behöver. Google Geocoding kan väljas i inställningarna.
+- **Mejl** bara när något hänt: nya resor (namn, kategori, destination, "gissad – kontrollera", länk), hämtade koordinater eller fel. Knappen Skicka testmejl i inställningarna.
+- Knappen i översikten heter nu **Sök efter nya resor nu** och gör samma sak som nattkörningen, utan mejl.
+
 ## 0.3.0 – fas 3: redigering
 - Rutan **Resekarta** på resans sida (bara svenska sidor): kategori (Auto eller egen), synlighet, destination (välj eller skapa ny), egen punkt med en liten karta att klicka eller dra i, och knappen Markera som kontrollerad. Visar om resan är på kartan och varför inte. På andra sidor: en ruta för att lägga till sidan på kartan.
 - **Snabbredigera** i översikten: kategori, synlighet, destination, egen punkt och Kontrollera – direkt i tabellen.

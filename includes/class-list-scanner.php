@@ -74,8 +74,7 @@ final class List_Scanner {
 			return $report;
 		}
 
-		$rules = Rules::all();
-		$now   = current_time( 'mysql' );
+		$now = current_time( 'mysql' );
 		foreach ( $found as $id => $info ) {
 			$was_trip   = Trips::is_trip( $id );
 			$was_listed = $was_trip && '1' === get_post_meta( $id, Trips::META_LISTED, true );
@@ -91,13 +90,6 @@ final class List_Scanner {
 			update_post_meta( $id, Trips::META_LISTED, '1' );
 			update_post_meta( $id, Trips::META_LAST_SEEN, $now );
 			self::set_auto_category( $id, $info['category'] );
-
-			if ( ! $was_trip && ! get_post_meta( $id, Trips::META_DESTINATION, true ) ) {
-				$rule = Rules::match( get_the_title( $id ), $rules );
-				if ( $rule && Destinations::get( $rule['destination'] ) ) {
-					update_post_meta( $id, Trips::META_DESTINATION, (int) $rule['destination'] );
-				}
-			}
 		}
 
 		foreach ( Trips::ids() as $id ) {
@@ -115,6 +107,10 @@ final class List_Scanner {
 		$report['ok'] = true;
 		self::save_report( $report, $dry_run );
 		if ( ! $dry_run ) {
+			if ( $report['new'] ) {
+				// Destination (rules, day programme) and the e-mail: see Automation.
+				do_action( 'cvrk_new_trips', array_keys( $report['new'] ) );
+			}
 			do_action( 'cvrk_trips_changed', 'scan' );
 		}
 		return $report;

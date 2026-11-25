@@ -16,6 +16,7 @@ final class Plugin {
 		add_action( 'init', array( __CLASS__, 'load_textdomain' ) );
 		Map_Data::boot();
 		Shortcode::boot();
+		Automation::boot();
 
 		if ( is_admin() ) {
 			Admin\Admin::boot();
@@ -34,9 +35,10 @@ final class Plugin {
 		if ( false === get_option( Rules::OPTION ) ) {
 			add_option( Rules::OPTION, array(), '', false );
 		}
+		Automation::ensure_schedule();
 	}
 
 	public static function deactivate() {
-		// Scheduled events are added in a later phase; nothing to clean up yet.
+		Automation::unschedule();
 	}
 }
