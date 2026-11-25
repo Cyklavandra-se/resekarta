@@ -51,10 +51,24 @@ final class Transition {
 		$langs = Languages::instance();
 		$out   = array();
 		foreach ( (array) $rows as $r ) {
-			$content = self::decode_code_blocks( $r->post_content );
-			$is_iframe = false !== strpos( $content, 'karta/reskarta.html' );
-			if ( ! $is_iframe && false === strpos( $content, '[resekarta' ) ) {
+			$content   = self::decode_code_blocks( $r->post_content );
+			$has_old   = false !== strpos( $content, 'karta/reskarta.html' );
+			$has_short = false !== strpos( $content, '[resekarta' );
+			if ( ! $has_old && ! $has_short ) {
 				continue;
+			}
+			// The saved content can mention the old file without showing it (a hidden or disabled
+			// element, old code kept in a block). Only the page as visitors see it counts.
+			$kind = 'shortcode';
+			if ( $has_old ) {
+				$shown = self::page_shows_old_map( $r->ID );
+				if ( true === $shown ) {
+					$kind = 'iframe';
+				} elseif ( null === $shown ) {
+					$kind = 'unknown';
+				} elseif ( ! $has_short ) {
+					$kind = 'hidden_old';
+				}
 			}
 			preg_match_all( '/\[resekarta(?:_test)?\b[^\]]*\]/', $content, $m );
 			$lang  = $langs->language_of( $r->ID );
@@ -63,12 +77,35 @@ final class Transition {
 				'title' => html_entity_decode( $r->post_title, ENT_QUOTES, 'UTF-8' ),
 				'url'   => (string) get_permalink( $r->ID ),
 				'lang'  => '' !== $lang ? Languages::map_code( $lang ) : '',
-				'kind'  => $is_iframe ? 'iframe' : 'shortcode',
+				'kind'  => $kind,
 				'code'  => implode( ' ', array_unique( $m[0] ) ),
 				'type'  => $r->post_type,
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * Does the published page, as visitors get it, embed the old map file? Null if the page
+	 * could not be fetched. Cached for 10 minutes.
+	 */
+	public static function page_shows_old_map( $post_id ) {
+		$pre = apply_filters( 'cvrk_pre_page_shows_old_map', null, $post_id );
+		if ( null !== $pre ) {
+			return $pre;
+		}
+		$key    = 'cvrk_oldmap_' . (int) $post_id;
+		$cached = get_transient( $key );
+		if ( false !== $cached ) {
+			return 'yes' === $cached;
+		}
+		$res = wp_remote_get( get_permalink( $post_id ), array( 'timeout' => 20, 'user-agent' => List_Scanner::user_agent() ) );
+		if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+			return null;
+		}
+		$shows = (bool) preg_match( '~<iframe[^>]+src=["\'][^"\']*karta/reskarta\.html~i', preg_replace( '/<!--.*?-->/s', '', wp_remote_retrieve_body( $res ) ) );
+		set_transient( $key, $shows ? 'yes' : 'no', 10 * MINUTE_IN_SECONDS );
+		return $shows;
 	}
 
 	/** Content with Avada Code Blocks decoded, so shortcodes inside them can be found. Pure. */
@@ -98,7 +135,7 @@ final class Transition {
 		foreach ( array_keys( $build['languages'] ) as $code ) {
 			$new = Map_Data::read_file( Map_Data::dir() . 'resor-' . $code . '.js' );
 			$old = Map_Data::read_file( Map_Compare::old_file( $code ) );
-			$c   = ( null !== $new && null !== $old ) ? Map_Compare::compare( $new, $old ) : null;
+			$c   = ( null !== $new && null !== $old ) ? Map_Compare::compare( $new, $old, Map_Compare::wp_resolver() ) : null;
 			$out[ $code ] = array(
 				'new'     => null === $new ? 0 : count( $new ),
 				'old'     => null === $old ? null : count( $old ),
@@ -119,7 +156,7 @@ final class Transition {
 			return new \WP_Error( 'cvrk_not_yet', 'Slå först på tilläggets kortkod och stäng av kodstycket.' );
 		}
 		foreach ( self::pages_with_map() as $p ) {
-			if ( 'iframe' === $p['kind'] ) {
+			if ( in_array( $p['kind'], array( 'iframe', 'unknown' ), true ) ) {
 				return new \WP_Error( 'cvrk_in_use', 'Sidan "' . $p['title'] . '" visar fortfarande den gamla kartfilen direkt. Byt till [resekarta] där först.' );
 			}
 		}

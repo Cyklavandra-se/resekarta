@@ -1,5 +1,9 @@
 # Ändringslogg – Resekarta
 
+## 1.0.1
+- Jämförelsen med dagens karta matchar resorna på sidan i WordPress, inte på länken. En resa som nu länkar till sin norska översättning (där kalkylarket länkade till den svenska sidan) räknas inte längre som saknad – den visas som "Ändrad länk" under fliken Karta. Steg 2 på fliken Övergång blir då grönt.
+- Steg 4 på fliken Övergång: en sida flaggas för "gammal kartfil direkt" bara om den gamla kartan faktiskt syns på sidan. Gammal kod som finns sparad i sidan men inte visas markeras i stället "visas inte" och stoppar inte städningen.
+
 ## 1.0.0 – fas 5: övergång
 - Ny flik **Övergång** med checklistan för bytet från kalkylarket och kodstycket. Stegen bockas av av sig själva: import, jämförelse med dagens karta, bytet av kortkod (med knapp för att slå på – och tillbaka), alla sidor som visar kartan (även i Avadas Code Block) med länkar för kontroll, kalkylarkets nattkörning, och städning av de gamla kartfilerna.
 - README med bruksanvisning på svenska.

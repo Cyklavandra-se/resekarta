@@ -45,7 +45,7 @@ $cvrk_compare_ok = $cvrk_compare && ! array_filter(
 $cvrk_iframes = array_filter(
 	$cvrk_pages,
 	function ( $p ) {
-		return 'iframe' === $p['kind'];
+		return in_array( $p['kind'], array( 'iframe', 'unknown' ), true );
 	}
 );
 $cvrk_sheet_recent = isset( $cvrk_old['resor-sv.js'] ) && ( time() - $cvrk_old['resor-sv.js'] ) < 36 * HOUR_IN_SECONDS;
@@ -149,6 +149,10 @@ $cvrk_step = function ( $nr, $done, $title ) {
 						<td>
 							<?php if ( 'iframe' === $cvrk_p['kind'] ) : ?>
 								<span class="cvrk-warn">gammal kartfil direkt</span>
+							<?php elseif ( 'unknown' === $cvrk_p['kind'] ) : ?>
+								<span class="cvrk-muted">kunde inte kontrolleras – öppna sidan och titta</span>
+							<?php elseif ( 'hidden_old' === $cvrk_p['kind'] ) : ?>
+								<span class="cvrk-muted">gammal kod sparad i sidan, men den visas inte</span>
 							<?php else : ?>
 								<code><?php echo esc_html( $cvrk_p['code'] ); ?></code>
 							<?php endif; ?>
