@@ -1,33 +1,73 @@
-name: Bygg zip
+name: Bygg release
 
+# Samma upplägg som i Förstasida. Tre sätt att släppa en version:
+#  1. Actions → Bygg release → Run workflow (på main) → taggen vX.Y.Z tas från
+#     "Version:" i resekarta.php, och release + zip skapas automatiskt.
+#  2. Pusha en tagg vX.Y.Z → samma sak.
+#  3. Releases → Draft a new release → Publish → zip bifogas till din release.
+# Releasetexten tas från avsnittet för versionen i CHANGELOG.md.
+# WordPress på sajten hittar releasen och erbjuder den som uppdatering (includes/updater.php).
 on:
+  workflow_dispatch:
   push:
     tags: ['v*']
-  pull_request:
-  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.ref_name }}
 
 jobs:
-  test-and-build:
+  zip:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        php: ['7.4', '8.3']
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
-      - uses: shivammathur/setup-php@v2
         with:
-          php-version: ${{ matrix.php }}
-          tools: composer
-      - run: composer install --no-interaction --no-progress
-      - run: vendor/bin/phpunit
-      - run: bin/build-zip.sh
-      - uses: actions/upload-artifact@v4
-        if: matrix.php == '8.3'
-        with:
-          name: resekarta
-          path: resekarta.zip
-      - name: Lägg zip-filen på releasen
-        if: startsWith(github.ref, 'refs/tags/v') && matrix.php == '8.3'
-        uses: softprops/action-gh-release@v2
-        with:
-          files: resekarta.zip
+          ref: ${{ github.event.release.tag_name || github.ref }}
+
+      - name: Läs version och tagg
+        run: |
+          VER=$(grep -m1 -E '^\s*\*\s*Version:' resekarta.php | sed -E 's/.*Version:\s*//' | tr -d '[:space:]')
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="v$VER"
+          else
+            TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          fi
+          echo "Tagg: $TAG  Version: $VER"
+          if [ "${TAG#v}" != "$VER" ]; then
+            echo "::error::Taggen ($TAG) måste vara v + Version ($VER) i resekarta.php."
+            exit 1
+          fi
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+
+      - name: Stoppa om versionen redan är släppt (vid knapptryck)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1 || git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "::error::$TAG finns redan. Höj Version: och VERSION i resekarta.php först."
+            exit 1
+          fi
+
+      - name: Bygg zip (kontrollerar också att Version och VERSION stämmer)
+        run: bin/build-zip.sh
+
+      - name: Skapa releasen om den saknas
+        if: github.event_name != 'release'
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Releasen $TAG finns redan."
+            exit 0
+          fi
+          # Avsnittet "## X.Y.Z …" i CHANGELOG.md fram till nästa "## ".
+          NOTES=$(awk -v v="${TAG#v}" '/^## /{f=($2==v)} f && !/^## /' CHANGELOG.md | sed '/./,$!d')
+          [ -n "$NOTES" ] || NOTES="Version ${TAG#v}"
+          gh release create "$TAG" --target "$GITHUB_SHA" --title "${TAG#v}" --notes "$NOTES" \
+            || gh release view "$TAG" >/dev/null
+
+      - name: Bifoga zip till releasen
+        run: gh release upload "$TAG" resekarta.zip --clobber

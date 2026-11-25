@@ -1,5 +1,8 @@
 # Ändringslogg – Resekarta
 
+## 0.1.3
+- Uppdateringar sköts nu av WordPress, som för de andra egna tilläggen: nya versioner hämtas från GitHub och visas under Tillägg och Kontrollpanel → Uppdateringar. Länken "Sök efter uppdatering" finns i tilläggslistan.
+
 ## 0.1.2
 - Tillägget heter nu **Cykla & Vandra – Resekarta** i listan över tillägg, så det hamnar bredvid de andra egna tilläggen.
 

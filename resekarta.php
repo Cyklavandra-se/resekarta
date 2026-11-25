@@ -2,12 +2,13 @@
 /**
  * Plugin Name:       Cykla & Vandra – Resekarta
  * Description:       Interaktiv karta över Cykla & Vandras resor på alla språk
- * Version:           0.1.2
+ * Version:           0.1.3
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Cykla & Vandra
  * Text Domain:       resekarta
  * License:           GPL-2.0-or-later
+ * Update URI:        https://github.com/Cyklavandra-se/resekarta
  *
  * @package CV_Resekarta
  */
@@ -16,7 +17,18 @@ namespace CV_Resekarta;
 
 defined( 'ABSPATH' ) || exit;
 
-const VERSION     = '0.1.2';
+// Skydd om tillägget råkar finnas installerat två gånger (t.ex. "Source code"-zip från GitHub).
+if ( defined( __NAMESPACE__ . '\\VERSION' ) ) {
+	add_action(
+		'admin_notices',
+		function () {
+			echo '<div class="notice notice-error"><p><strong>Resekarta</strong> är installerad två gånger. Avaktivera och radera den ena kopian under Tillägg.</p></div>';
+		}
+	);
+	return;
+}
+
+const VERSION     = '0.1.3';
 const PLUGIN_FILE = __FILE__;
 const PLUGIN_DIR  = __DIR__;
 
@@ -32,6 +44,7 @@ require_once __DIR__ . '/includes/class-list-scanner.php';
 require_once __DIR__ . '/includes/class-csv.php';
 require_once __DIR__ . '/includes/class-importer.php';
 require_once __DIR__ . '/includes/class-plugin.php';
+require_once __DIR__ . '/includes/updater.php'; // Uppdateringar via GitHub-releaser, som de andra egna tilläggen.
 
 if ( is_admin() ) {
 	require_once __DIR__ . '/includes/admin/class-admin.php';
