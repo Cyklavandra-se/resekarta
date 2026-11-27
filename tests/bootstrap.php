@@ -18,3 +18,8 @@ if ( ! function_exists( 'admin_url' ) ) {
 		return 'https://example.org/wp-admin/' . $path;
 	}
 }
+if ( ! function_exists( 'wp_parse_url' ) ) {
+	function wp_parse_url( $url, $component = -1 ) {
+		return parse_url( $url, $component ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+	}
+}

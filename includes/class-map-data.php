@@ -88,7 +88,7 @@ final class Map_Data {
 
 	public static function url() {
 		$up = wp_upload_dir( null, false );
-		return set_url_scheme( trailingslashit( $up['baseurl'] ) . self::DIR . '/' );
+		return self::site_scheme( trailingslashit( $up['baseurl'] ) . self::DIR . '/' );
 	}
 
 	/** Map language codes (no, da …) of the active WPML languages, default first. */
@@ -191,7 +191,7 @@ final class Map_Data {
 				'dest'  => $dest,
 				'lat'   => (float) $point[0],
 				'lng'   => (float) $point[1],
-				'img'   => $img ? (string) $img : '',
+				'img'   => $img ? self::site_scheme( (string) $img ) : '',
 				'slugs' => Trips::tag_slugs( $id ),
 			);
 		}
@@ -314,7 +314,8 @@ final class Map_Data {
 		if ( '' === $template ) {
 			return '';
 		}
-		$vendor = set_url_scheme( plugins_url( 'assets/map/vendor/', PLUGIN_FILE ) );
+		$up     = wp_upload_dir( null, false );
+		$vendor = self::vendor_url( plugins_url( 'assets/map/vendor/', PLUGIN_FILE ), $up['baseurl'], (string) get_option( 'home' ) );
 		return strtr(
 			$template,
 			array(
@@ -324,6 +325,29 @@ final class Map_Data {
 				'{{VERSION}}' => preg_replace( '/[^a-z0-9]/', '', (string) $version ),
 			)
 		);
+	}
+
+	/**
+	 * The libraries' address as written into karta.html. Pure.
+	 *
+	 * The map is often rebuilt by WP-Cron, which calls the site over http – so the scheme of
+	 * the current request must not be used (an http:// script on an https page is blocked and
+	 * the map stays empty). When the map file and the plugin are on the same host, a
+	 * root-relative path is used; otherwise the site's own scheme.
+	 */
+	public static function vendor_url( $plugin_url, $uploads_url, $home ) {
+		$p = wp_parse_url( $plugin_url );
+		$u = wp_parse_url( $uploads_url );
+		if ( ! empty( $p['host'] ) && ! empty( $u['host'] ) && strtolower( $p['host'] ) === strtolower( $u['host'] ) ) {
+			return ( isset( $p['path'] ) ? $p['path'] : '/' );
+		}
+		return self::site_scheme( $plugin_url, $home );
+	}
+
+	/** Use the scheme of the site's address (Inställningar → Allmänt), not of the current request. */
+	public static function site_scheme( $url, $home = null ) {
+		$scheme = wp_parse_url( null === $home ? (string) get_option( 'home' ) : $home, PHP_URL_SCHEME );
+		return preg_replace( '~^https?:~i', ( 'https' === $scheme ? 'https' : 'http' ) . ':', (string) $url );
 	}
 
 	/** Write atomically (temp file + rename), so visitors never get half a file. */

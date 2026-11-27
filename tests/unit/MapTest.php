@@ -115,4 +115,19 @@ final class MapTest extends TestCase {
 		$this->assertCount( 1, $c['changed']['url'] );
 		$this->assertSame( '/no/vandring/cinque-terre-no/', $c['changed']['url'][0]['new'] );
 	}
+
+	public function test_library_address_does_not_follow_the_request_scheme() {
+		// WP-Cron builds over http: the page must still load the libraries over https.
+		$this->assertSame(
+			'/wp-content/plugins/resekarta/assets/map/vendor/',
+			Map_Data::vendor_url( 'http://cyklavandra.se/wp-content/plugins/resekarta/assets/map/vendor/', 'http://cyklavandra.se/wp-content/uploads', 'https://cyklavandra.se' )
+		);
+		// Different hosts (CDN for uploads): absolute, with the site's scheme.
+		$this->assertSame(
+			'https://cyklavandra.se/wp-content/plugins/resekarta/assets/map/vendor/',
+			Map_Data::vendor_url( 'http://cyklavandra.se/wp-content/plugins/resekarta/assets/map/vendor/', 'https://cdn.example.com/uploads', 'https://cyklavandra.se' )
+		);
+		$this->assertSame( 'https://x.se/a.jpg', Map_Data::site_scheme( 'http://x.se/a.jpg', 'https://x.se' ) );
+		$this->assertSame( 'http://localhost/a.jpg', Map_Data::site_scheme( 'https://localhost/a.jpg', 'http://localhost' ) );
+	}
 }
