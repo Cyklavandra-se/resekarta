@@ -150,7 +150,9 @@ final class Map_Data {
 			$hashes .= md5( $content );
 		}
 
-		$report['version'] = substr( md5( $hashes . VERSION . Settings::get( 'map_style' ) ), 0, 10 );
+		// The version also follows the map page itself, so browsers fetch a changed map after an update.
+		$template          = (string) @md5_file( PLUGIN_DIR . '/assets/map/karta.html' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		$report['version'] = substr( md5( $hashes . VERSION . Settings::get( 'map_style' ) . $template ), 0, 10 );
 		$html              = self::render_html( $codes, $report['version'] );
 		if ( '' === $html || ! self::write( $dir . 'karta.html', $html ) ) {
 			$report['errors'][] = 'Kunde inte skriva karta.html';

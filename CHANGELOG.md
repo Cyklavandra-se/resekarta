@@ -1,5 +1,11 @@
 # Ändringslogg – Resekarta
 
+## 1.0.2
+- Mobil: rutan för en resa ryms alltid i kartan och knappen **Läs mer** syns. Texten går att scrolla, bilden blir lägre (och döljs på de allra minsta skärmarna), rutan blir smalare på smala kartor, och kartstilsvalet och Återställ vy döljs medan rutan är öppen.
+- Mobil: kartan är högre (ramen är 85 % av skärmen, minst 560 px, och filtren under kartan tar mindre plats – de små filtren ligger på en rad som går att svepa). På en vanlig mobil blir kartan ungefär 35 % högre. Återställ vy ligger uppe till höger, så att den inte täcker valet av kartstil och språk.
+- Texten på knappen Läs mer är vit igen (kartbiblioteket färgade den blå).
+- Kartans versionsnummer ändras också när själva kartan ändras, så att webbläsare hämtar den nya kartan efter en uppdatering.
+
 ## 1.0.1
 - Jämförelsen med dagens karta matchar resorna på sidan i WordPress, inte på länken. En resa som nu länkar till sin norska översättning (där kalkylarket länkade till den svenska sidan) räknas inte längre som saknad – den visas som "Ändrad länk" under fliken Karta. Steg 2 på fliken Övergång blir då grönt.
 - Steg 4 på fliken Övergång: en sida flaggas för "gammal kartfil direkt" bara om den gamla kartan faktiskt syns på sidan. Gammal kod som finns sparad i sidan men inte visas markeras i stället "visas inte" och stoppar inte städningen.

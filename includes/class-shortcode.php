@@ -119,7 +119,15 @@ final class Shortcode {
 		$src  = Map_Data::url() . 'karta.html?' . self::query( $a, $lang, Map_Data::languages(), Map_Data::version() );
 		$hojd = max( 300, min( 2000, intval( $a['hojd'] ) ) );
 
-		return sprintf(
+		// On phones the map gets more room (the filters wrap below it); printed once per page.
+		static $style_done = false;
+		$style = '';
+		if ( ! $style_done ) {
+			$style_done = true;
+			$style      = '<style>@media (max-width:640px){iframe.cvrk-karta{height:85vh!important;min-height:560px!important;max-height:none!important}}</style>';
+		}
+
+		return $style . sprintf(
 			'<iframe class="cvrk-karta" src="%s" title="%s" loading="lazy" style="display:block;width:100%%;height:80vh;min-height:480px;max-height:%dpx;border:0;"></iframe>',
 			esc_url( $src ),
 			esc_attr( isset( self::TITLES[ $lang ] ) ? self::TITLES[ $lang ] : self::TITLES['en'] ),
