@@ -530,10 +530,30 @@ final class Admin {
 			'keywords' => isset( $in['keywords'] ) ? $in['keywords'] : '',
 			'names'    => isset( $in['names'] ) && is_array( $in['names'] ) ? $in['names'] : array(),
 		);
+		$err  = '';
+		$info = '';
+		if ( ! empty( $_POST['cvrk_lookup'] ) ) { // "Hämta koordinater": look up the name (or keywords) now.
+			$query = '' !== trim( (string) $data['keywords'] ) ? (string) $data['keywords'] : $name;
+			try {
+				$point = \CV_Resekarta\Geocoder::lookup( $query );
+				if ( $point ) {
+					$data['lat'] = $point['lat'];
+					$data['lng'] = $point['lng'];
+					$info        = 'Koordinaterna hämtades för "' . $query . '"' . ( $point['label'] ? ' (' . $point['label'] . ')' : '' ) . ' – kontrollera punkten på kartan.';
+				} else {
+					$err = 'Hittade ingen plats som heter "' . $query . '". Skriv ett sökord (t.ex. "Potsdam, Tyskland") och försök igen, eller klicka på kartan.';
+				}
+			} catch ( \RuntimeException $e ) {
+				$err = $e->getMessage();
+			}
+			$in['lat'] = $data['lat'];
+			$in['lng'] = $data['lng'];
+		}
 		$lat = Destinations::coordinate( $data['lat'], 90 );
 		$lng = Destinations::coordinate( $data['lng'], 180 );
-		$err = '';
-		if ( ( '' !== trim( (string) $data['lat'] ) || '' !== trim( (string) $data['lng'] ) ) && ( null === $lat || null === $lng ) ) {
+		if ( '' !== $err ) {
+			// Lookup failed: keep the form as typed and save nothing (the message says why).
+		} elseif ( ( '' !== trim( (string) $data['lat'] ) || '' !== trim( (string) $data['lng'] ) ) && ( null === $lat || null === $lng ) ) {
 			$err = 'Fyll i både Lat (−90 till 90) och Lng (−180 till 180), t.ex. 42.5063 och 1.5218 – eller lämna båda tomma.';
 		} elseif ( $id ) {
 			$res = Destinations::rename( $id, $name );
@@ -559,6 +579,10 @@ final class Admin {
 			self::redirect( self::url( 'destinationer', $id ? array( 'redigera' => $id ) : array( 'ny' => 1 ) ) );
 		}
 		do_action( 'cvrk_trips_changed', 'destination' );
+		if ( '' !== $info ) {
+			set_transient( 'cvrk_form_info_' . get_current_user_id(), $info, 300 );
+			self::redirect( self::url( 'destinationer', array( 'redigera' => $id, 'cvrk_msg' => 'looked_up' ) ) );
+		}
 		self::redirect( self::url( 'destinationer', array( 'cvrk_msg' => 'saved', 'markerad' => $id ) ) . '#cvrk-dest-' . $id );
 	}
 

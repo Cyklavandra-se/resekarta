@@ -55,6 +55,10 @@ if ( $cvrk_error ) {
 		// phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$cvrk_rn = isset( $_GET['regler'] ) ? (int) $_GET['regler'] : 0;
 		Admin::notice( sprintf( 'Destinationen är borttagen. %d resor saknar nu destination, %d regler togs bort.', $cvrk_n, $cvrk_rn ) );
+	} elseif ( 'looked_up' === $cvrk_msg ) {
+		$cvrk_info = get_transient( 'cvrk_form_info_' . get_current_user_id() );
+		delete_transient( 'cvrk_form_info_' . get_current_user_id() );
+		Admin::notice( esc_html( $cvrk_info ? $cvrk_info : 'Koordinaterna är hämtade och sparade.' ) );
 	} elseif ( 'delete_failed' === $cvrk_msg ) {
 		Admin::notice( 'Destinationen kunde inte tas bort.', 'error' );
 	}
@@ -101,6 +105,7 @@ if ( $cvrk_error ) {
 						<td>
 							<label>Lat <input type="text" name="cvrk_dest[lat]" class="cvrk-lat" size="10" inputmode="decimal" value="<?php echo esc_attr( $cvrk_val( 'lat', null === $cvrk_d['lat'] ? '' : $cvrk_d['lat'] ) ); ?>"></label>
 							<label>Lng <input type="text" name="cvrk_dest[lng]" class="cvrk-lng" size="10" inputmode="decimal" value="<?php echo esc_attr( $cvrk_val( 'lng', null === $cvrk_d['lng'] ? '' : $cvrk_d['lng'] ) ); ?>"></label>
+							<button type="submit" class="button" name="cvrk_lookup" value="1" title="Slår upp namnet (eller sökordet) hos OpenStreetMap och sparar">Hämta koordinater</button>
 							<button type="button" class="button-link cvrk-clear-point">Töm</button>
 							<?php Admin::picker( null, 'Klicka på kartan eller dra nålen. Decimaltal, t.ex. 42.5063 och 1.5218.' ); ?>
 						</td>
