@@ -960,17 +960,45 @@ function oversattEtiketter(ml) {
 
 let vektorLager = null;
 let kartVersion = 0;
+// Webbläsare (särskilt på mobil) kan släppa kartans grafikminne ("WebGL context lost") – då
+// försvinner bakgrunden men resorna ligger kvar. Bakgrunden återskapas då av sig själv, som när
+// besökaren byter kartstil. Händer det om och om igen används den enklare klassiska kartan.
+let aktivStil = null;
+let forlorade = [];
 function setVektorKarta(stil) {
   const version = ++kartVersion;
+  aktivStil = stil;
   if (vektorLager) { map.removeLayer(vektorLager); vektorLager = null; }
   if (!VEKTOR_STILAR[stil]) { setTiles('hot'); return; } // "klassisk" = den tidigare kartan
   if (tileLayer) { map.removeLayer(tileLayer); tileLayer = null; }
   let laddad = false;
   try {
-    vektorLager = L.maplibreGL({ style: VEKTOR_STILAR[stil], attributionControl: { customAttribution: VEKTOR_ATTR } }).addTo(map);
+    vektorLager = L.maplibreGL({
+      style: VEKTOR_STILAR[stil],
+      attributionControl: { customAttribution: VEKTOR_ATTR },
+      // Högst dubbel upplösning: på mobiler med ~3x skärm halverar det grafikminnet.
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+    }).addTo(map);
     const ml = vektorLager.getMaplibreMap();
     ml.on('style.load', () => { laddad = true; oversattEtiketter(ml); });
-    ml.on('error', e => console.warn('Kartfel:', e && e.error ? e.error.message : e));
+    ml.on('error', e => {
+      console.warn('Kartfel:', e && e.error ? e.error.message : e);
+      // En kartbit som inte gick att hämta (t.ex. dålig mobiltäckning) prövas igen om en stund.
+      if (e && e.sourceId && e.tile) provaIgen(ml, e.sourceId, version);
+    });
+    const canvas = ml.getCanvas();
+    canvas.addEventListener('webglcontextlost', ev => {
+      ev.preventDefault();
+      if (version !== kartVersion) return;
+      const nu = Date.now();
+      forlorade = forlorade.filter(t => nu - t < 120000).concat(nu);
+      console.warn('Kartans grafik försvann – ritar om bakgrunden (' + forlorade.length + ')');
+      setTimeout(() => {
+        if (version !== kartVersion) return;
+        if (forlorade.length >= 3) { setVektorKarta('klassisk'); return; } // Tre gånger på två minuter.
+        setVektorKarta(aktivStil);
+      }, 1000);
+    }, false);
   } catch (e) {
     console.warn('Vektorkartan kunde inte startas:', e);
   }
@@ -980,6 +1008,19 @@ function setVektorKarta(stil) {
     if (vektorLager) { map.removeLayer(vektorLager); vektorLager = null; }
     setTiles('hot');
   }, 10000);
+}
+
+const nyaForsok = {};
+function provaIgen(ml, sourceId, version) {
+  if (nyaForsok[sourceId]) return;
+  nyaForsok[sourceId] = setTimeout(() => {
+    delete nyaForsok[sourceId];
+    if (version !== kartVersion) return;
+    try {
+      const src = ml.getSource(sourceId);
+      if (src && typeof src.reload === 'function') src.reload();
+    } catch (e) { /* kartan har bytts under tiden */ }
+  }, 4000);
 }
 
 // Kartstil: ?stil= i adressen, annars besökarens senaste val, annars Bright (ljus färgad)
