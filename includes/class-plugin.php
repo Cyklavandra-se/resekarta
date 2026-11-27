@@ -17,6 +17,7 @@ final class Plugin {
 		Map_Data::boot();
 		Shortcode::boot();
 		Automation::boot();
+		Page_Cache::boot();
 
 		if ( is_admin() ) {
 			Admin\Admin::boot();

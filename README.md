@@ -39,7 +39,8 @@ som har översättning, och Kontrollera-flaggan.
 - **Snabbredigera** (håll musen över en resa): ändra kategori, synlighet, destination och egen punkt direkt
   i tabellen.
 - **Sök efter nya resor nu** gör samma sak som nattkörningen (utan mejl).
-- **Bygg om kartan nu** behövs sällan – kartan byggs om av sig själv.
+- **Bygg om kartan nu** behövs sällan – kartan byggs om av sig själv, och sidcachen (WP Fastest Cache) för
+  sidorna med kartan töms samtidigt, så ändringar syns direkt.
 
 ### Rutan Resekarta på resans sida
 När du redigerar en svensk resesida finns rutan **Resekarta** i högerspalten:
