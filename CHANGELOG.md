@@ -1,5 +1,10 @@
 # Ändringslogg – Resekarta
 
+## 1.0.4
+- **Bakgrundskartan försvinner inte längre.** När webbläsaren släpper kartans grafikminne (vanligast på mobil, men även på dator) blev bakgrunden tom medan resorna låg kvar – tills man bytte kartstil eller språk. Nu ritas bakgrunden om av sig själv. Händer det tre gånger på två minuter används den enklare klassiska kartan.
+- Bakgrundskartan ritas med högst dubbel upplösning, vilket ungefär halverar grafikminnet på mobiler med skarp skärm (där det här oftast hände).
+- Kartbitar som inte gick att hämta (t.ex. vid dålig täckning) prövas igen efter några sekunder.
+
 ## 1.0.3
 - **Rättar tom karta efter nattkörningen.** När kartan byggdes om av WordPress schemalagda jobb (som anropar sajten via http) pekade kartsidan på biblioteken med http://, och webbläsarna blockerade dem på https-sidorna – kartan visades utan resor. Nu används en adress som fungerar oavsett hur ombyggnaden startas. Kartan byggs om av sig själv när uppdateringen installerats.
 
