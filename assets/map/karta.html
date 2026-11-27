@@ -244,7 +244,7 @@
   }
   .leaflet-popup-content {
     margin: 0;
-    width: 280px !important;
+    width: var(--pc-w, 280px) !important;
     font-family: 'Inter', sans-serif;
   }
   .leaflet-popup-tip { box-shadow: var(--shadow-lg); }
@@ -267,7 +267,18 @@
     overflow: hidden;
     border-radius: 14px;
     background: #fff;
+    /* Never taller than the map (set from JS): the text scrolls, the button stays visible. */
+    display: flex;
+    flex-direction: column;
+    max-height: var(--pc-max, none);
   }
+  .pc__image { flex: 0 0 auto; max-height: calc(var(--pc-max, 9999px) * .35); }
+  .pc__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .pc__foot { flex: 0 0 auto; padding: 0 16px 16px; }
+  .pc__foot--sep { padding-top: 10px; border-top: 1px solid var(--line); }
+  .kort-karta .pc__image { display: none; }
+  .kort-karta .pc__body { padding-top: 12px; padding-right: 44px; } /* room for the close button */
+  .kort-karta .leaflet-popup-close-button { top: 8px !important; right: 8px !important; }
   .pc__image {
     position: relative;
     aspect-ratio: 16/10;
@@ -301,7 +312,7 @@
     padding: 4px 10px;
     border-radius: 4px;
   }
-  .pc__body { padding: 14px 16px 16px; }
+  .pc__body { padding: 14px 16px 6px; }
   .pc__kicker {
     display: inline-flex;
     align-items: center;
@@ -352,6 +363,7 @@
     transition: background .15s, transform .08s;
     min-height: 42px;
   }
+  .leaflet-container a.pc__cta { color: #fff; } /* Leaflet colours all links blue */
   .pc__cta:hover { background: #000; }
   .pc__cta:active { transform: translateY(1px); }
   .pc__cta svg { transition: transform .15s; }
@@ -475,6 +487,9 @@
   .stilval select { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 6px; }
   .stilval a { color: var(--ink-soft); }
   .stilval.ett-sprak .sprak-del { display: none; }
+  /* While a trip is open, the controls at the bottom would cover its "Läs mer" button. */
+  .map-wrap.popup-open .stilval,
+  .map-wrap.popup-open .reset-btn { display: none; }
   .stilval a.aktiv { color: var(--ink); font-weight: 700; text-decoration: none; }
 
   /* ---------- Responsive ---------- */
@@ -484,7 +499,11 @@
     .topbar h1 .muted { display: none; }
     .legend { width: 100%; order: 2; margin-left: 0; }
     .chip { padding: 7px 12px; font-size: 13px; min-height: 38px; }
-    .leaflet-popup-content { width: 240px !important; }
+    .leaflet-popup-content { width: min(240px, var(--pc-w, 240px)) !important; }
+  }
+  @media (max-height: 720px) {
+    .pc__image { aspect-ratio: 2/1; }
+    .pc__title { font-size: 16px; }
   }
 </style>
 </head>
@@ -849,6 +868,32 @@ const map = L.map('map', {
   preferCanvas: false
 }).setView([30, 5], 2);
 
+// The open trip must fit in the map: popup height = map height minus room for the tip,
+// the marker and Leaflet's pan padding. The controls at the bottom are hidden meanwhile.
+(function popupFitsMap() {
+  const el = document.getElementById('map');
+  const wrap = el.closest('.map-wrap');
+  const fit = () => {
+    const size = map.getSize();
+    const max = Math.max(120, size.y - 90);
+    el.style.setProperty('--pc-max', max + 'px');
+    el.style.setProperty('--pc-w', Math.max(180, Math.min(280, size.x - 70)) + 'px'); // Narrow maps too.
+    el.classList.toggle('kort-karta', max < 200); // Very low map (small phones): no picture in the popup.
+  };
+  fit();
+  map.on('resize', fit);
+  window.addEventListener('resize', fit);
+  map.on('popupopen', e => {
+    wrap.classList.add('popup-open');
+    const c = e.popup.getElement();
+    const body = c && c.querySelector('.pc__body');
+    const foot = c && c.querySelector('.pc__foot');
+    // A line above the button when the text scrolls, so it is clear there is more.
+    if (body && foot) foot.classList.toggle('pc__foot--sep', body.scrollHeight > body.clientHeight + 1);
+  });
+  map.on('popupclose', () => wrap.classList.remove('popup-open'));
+})();
+
 let tileLayer;
 function setTiles(name) {
   if (tileLayer) map.removeLayer(tileLayer);
@@ -1031,6 +1076,8 @@ function popupHTML(t) {
         <p class="pc__meta">${iconPin}<span>${escapeHTML(t.region)}</span></p>
         ${t.desc ? `<p class="pc__desc">${escapeHTML(t.desc)}</p>` : ''}
         ${tagEls.length ? `<div class="pc__tags">${tagEls.join('')}</div>` : ''}
+      </div>
+      <div class="pc__foot">
         <a class="pc__cta" href="${escapeHTML(t.url)}" target="_blank" rel="noopener noreferrer">
           ${T.las_mer} ${iconArrow}
         </a>
