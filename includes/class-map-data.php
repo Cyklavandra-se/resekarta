@@ -160,9 +160,12 @@ final class Map_Data {
 		self::write( $dir . 'index.html', '' ); // No directory listing.
 
 		$report['ok'] = ! $report['errors'];
+		$previous     = get_option( self::BUILD_OPTION );
 		update_option( self::BUILD_OPTION, $report, false );
 		delete_option( 'cvrk_map_error' );
-		do_action( 'cvrk_map_built', $report );
+		do_action( 'cvrk_map_built', $report, is_array( $previous ) ? $previous : null );
+		$after = get_option( self::BUILD_OPTION ); // A listener may have added to the report.
+		$report = is_array( $after ) ? $after : $report;
 		return $report;
 	}
 

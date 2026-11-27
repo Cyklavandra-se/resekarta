@@ -54,6 +54,9 @@ $cvrk_error = get_option( 'cvrk_map_error' );
 	<div class="cvrk-summary">
 		<?php if ( $cvrk_build ) : ?>
 			<span>Senast byggd <?php echo esc_html( mysql2date( 'j M Y H:i', $cvrk_build['time'] ) ); ?> (version <?php echo esc_html( $cvrk_build['version'] ); ?>)</span>
+			<?php if ( ! empty( $cvrk_build['cache_cleared'] ) ) : ?>
+				<span class="cvrk-muted">Sidcache tömd för <?php echo (int) $cvrk_build['cache_cleared']['pages']; ?> sidor med kartan (<?php echo esc_html( $cvrk_build['cache_cleared']['how'] ); ?>)</span>
+			<?php endif; ?>
 			<?php foreach ( $cvrk_build['errors'] as $cvrk_e ) : ?>
 				<span class="cvrk-warn"><?php echo esc_html( $cvrk_e ); ?></span>
 			<?php endforeach; ?>

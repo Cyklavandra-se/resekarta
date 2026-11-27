@@ -1,5 +1,8 @@
 # Ändringslogg – Resekarta
 
+## 1.0.7
+- **Sidcachen töms av sig själv** när kartan ändras: för sidorna som visar kartan (alla språk) i WP Fastest Cache – och i WP Rocket, LiteSpeed Cache, W3 Total Cache eller WP Super Cache om sajten byter. Då syns en flyttad resa direkt, utan att man behöver klicka Delete Cache. Görs bara när kartan faktiskt ändrats; Bygg om kartan nu tömmer alltid. Fliken Karta visar hur många sidor som tömdes.
+
 ## 1.0.6
 - **Platsuppslag fungerar även när OpenStreetMap spärrar webbhotellet.** OpenStreetMap (Nominatim) vägrar ofta förfrågningar från delade webbhotell (cyklavandra.se fick HTTP 629). Då används **Photon** som reserv – också gratis och byggd på OpenStreetMap – och OpenStreetMap pausas en timme. Photon godtas bara när namnet stämmer (inte "Sorrento" för "Sorteny").
 - Knappen **Hämta koordinater** gör uppslaget i din egen webbläsare och fyller i punkten – kontrollera den på kartan och klicka Spara. Går det inte därifrån försöker servern.

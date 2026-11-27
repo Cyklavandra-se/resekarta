@@ -303,6 +303,9 @@ final class Admin {
 		self::require_cap( self::CAP_EDIT );
 		check_admin_referer( 'cvrk_rebuild' );
 		$report = Map_Data::build();
+		if ( $report['ok'] ) {
+			\CV_Resekarta\Page_Cache::on_map_built( $report, null ); // By hand: always empty the page cache.
+		}
 		$back   = isset( $_POST['cvrk_back'] ) && 'karta' === $_POST['cvrk_back'] ? 'karta' : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
 		self::redirect( self::url( $back, array( 'cvrk_msg' => $report['ok'] ? 'rebuilt' : 'rebuild_failed' ) ) );
 	}
