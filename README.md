@@ -79,6 +79,19 @@ Varje natt omkring kl 03 (och ett par minuter efter att du publicerat en ny sven
    Även de flaggas Kontrollera.
 4. Kartan byggs om.
 
+**Om en ny resa saknar destination** (flaggan "Ingen destination hittades – …" står i översikten och i mejlet,
+med orsaken inom parentes):
+
+1. Öppna resan → rutan **Resekarta** → **Destination**. Välj en befintlig destination, eller *+ Ny destination…*
+   och skriv namnet (t.ex. "Potsdam"). Klicka **Uppdatera**.
+2. Är destinationen ny saknar den koordinater: gå till **Destinationer**, klicka på den och sedan
+   **Hämta koordinater** (eller klicka på kartan). Spara.
+3. Klicka **Markera som kontrollerad** i rutan Resekarta.
+
+Snabbare: Snabbredigera i översikten gör steg 1. Och ofta räcker det att vänta – resan prövas igen
+vid nästa körning (eller klicka **Sök efter nya resor nu**). Skriv gärna en **destinationsregel**
+(t.ex. nyckelordet "Potsdam" → Potsdam) så får liknande resor rätt destination direkt.
+
 **Mejl** kommer bara när något hänt: nya resor (namn, kategori, destination, "gissad – kontrollera", länk),
 automatiskt hämtade koordinater, eller något som gick fel. Tysta nätter kommer inget mejl. Adressen ställer du
 in under **Inställningar**, där finns också **Skicka testmejl** och när nattkörningen gick senast.

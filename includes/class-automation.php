@@ -120,6 +120,9 @@ final class Automation {
 				$report['errors'][] = $scan['error'];
 			}
 			$report['new'] = self::$new;
+			if ( $scan['ok'] ) {
+				$report['retried'] = self::retry_unresolved();
+			}
 			if ( $opt['geocode'] ) {
 				$geo                 = self::geocode_missing();
 				$report['geocoded']  = $geo['geocoded'];
@@ -167,6 +170,8 @@ final class Automation {
 
 	/**
 	 * Give a trip without destination one: rules first, then the day programme.
+	 * When nothing is found, the flag says why (so it can be fixed), and the trip is tried
+	 * again on later runs (see retry_unresolved()).
 	 *
 	 * @return string How: 'has', 'rule', 'program', 'none'.
 	 */
@@ -177,61 +182,107 @@ final class Automation {
 		$rule = Rules::match( Map_Data::title( $id ), Rules::all() );
 		if ( $rule && Destinations::get( $rule['destination'] ) ) {
 			update_post_meta( $id, Trips::META_DESTINATION, (int) $rule['destination'] );
+			if ( self::is_none_note( (string) get_post_meta( $id, Trips::META_CHECK, true ) ) ) {
+				delete_post_meta( $id, Trips::META_CHECK );
+			}
 			return 'rule';
 		}
-		$found = self::from_program( $id );
+		$why   = '';
+		$found = self::from_program( $id, $why );
 		if ( $found ) {
 			update_post_meta( $id, Trips::META_DESTINATION, $found['destination'] );
 			update_post_meta( $id, Trips::META_CHECK, sprintf( self::NOTE_PROGRAM, $found['day'] ) );
 			return 'program';
 		}
-		if ( ! get_post_meta( $id, Trips::META_CHECK, true ) ) {
-			update_post_meta( $id, Trips::META_CHECK, self::NOTE_NONE );
+		$current = (string) get_post_meta( $id, Trips::META_CHECK, true );
+		if ( '' === $current || self::is_none_note( $current ) ) {
+			update_post_meta( $id, Trips::META_CHECK, self::NOTE_NONE . ( '' !== $why ? ' (' . $why . ')' : '' ) );
 		}
 		return 'none';
 	}
 
+	/** Is this the "no destination found" flag (with or without explanation)? */
+	public static function is_none_note( $note ) {
+		return 0 === strpos( (string) $note, 'Ingen destination hittades' );
+	}
+
 	/**
-	 * First place in the day programme that is a known destination with a point, or that the
-	 * geocoder finds. Middle days first.
+	 * Trips on the lists that still have no destination because nothing was found: try again
+	 * (the geocoder may have been down, or the page changed). A few per run.
 	 *
+	 * @return array Trip ID => how ('rule', 'program' or 'none').
+	 */
+	public static function retry_unresolved() {
+		$out = array();
+		foreach ( Trips::ids() as $id ) {
+			if ( count( $out ) >= 5 ) {
+				break;
+			}
+			$trip = Trips::get( $id );
+			if ( $trip['destination'] || $trip['own_point'] || ! self::is_none_note( $trip['check'] ) || 'publish' !== $trip['status'] || 'hide' === $trip['visibility'] ) {
+				continue;
+			}
+			$out[ $id ] = self::auto_destination( $id );
+		}
+		if ( array_filter( $out, function ( $how ) { return 'none' !== $how; } ) ) {
+			do_action( 'cvrk_trips_changed', 'retry' );
+		}
+		return $out;
+	}
+
+	/**
+	 * A place in the day programme that is a known destination with a point, or that the
+	 * geocoder finds as a town or area. Names on several days first, then the middle days.
+	 *
+	 * @param int    $id
+	 * @param string $why Set to the reason when nothing is found (shown in the flag).
 	 * @return array|null array( 'destination' => term ID, 'day' => int )
 	 */
-	public static function from_program( $id ) {
-		$days    = Day_Program::order( Day_Program::read( self::rendered_content( $id ) ) );
+	public static function from_program( $id, &$why = '' ) {
+		$post = get_post( $id );
+		$days = Day_Program::read( self::rendered_content( $id ) );
+		if ( ! $days && $post ) {
+			// Fallback: the saved content with the page builder's shortcodes as line breaks.
+			$days = Day_Program::read( preg_replace( '~\[/?[a-z_]+[^\]]*\]~i', "\n", $post->post_content ) );
+		}
+		if ( ! $days ) {
+			$why = 'inget dagsprogram med "Dag 1 …" hittades på sidan';
+			return null;
+		}
+		$tried   = array();
 		$lookups = 0;
-		foreach ( $days as $d ) {
-			foreach ( Day_Program::candidates( $d['title'] ) as $c ) {
-				foreach ( Day_Program::variants( $c ) as $name ) {
-					$known = Destinations::find_by_name( $name );
-					if ( $known && Destinations::has_point( Destinations::get( $known ) ) ) {
-						return array( 'destination' => $known, 'day' => $d['day'] );
-					}
-					if ( $lookups++ >= self::MAX_LOOKUPS ) {
-						return null;
-					}
-					try {
-						$point = Geocoder::lookup( $name );
-					} catch ( \RuntimeException $e ) {
-						return null; // Service down: try again next time (the trip stays flagged).
-					}
-					if ( $point ) {
-						$data = array(
-							'lat' => $point['lat'],
-							'lng' => $point['lng'],
-						);
-						if ( $known ) {
-							Destinations::update( $known, $data, false );
-							return array( 'destination' => $known, 'day' => $d['day'] );
-						}
-						$new = Destinations::create( $name, $data );
-						if ( ! is_wp_error( $new ) ) {
-							return array( 'destination' => $new, 'day' => $d['day'] );
-						}
-					}
+		foreach ( Day_Program::names_to_try( $days ) as $n ) {
+			$name  = $n['name'];
+			$known = Destinations::find_by_name( $name );
+			if ( $known && Destinations::has_point( Destinations::get( $known ) ) ) {
+				return array( 'destination' => $known, 'day' => $n['day'] );
+			}
+			if ( $lookups++ >= self::MAX_LOOKUPS ) {
+				break;
+			}
+			try {
+				$point = Geocoder::lookup( $name, true );
+			} catch ( \RuntimeException $e ) {
+				$why = $e->getMessage() . ' – prövas igen vid nästa körning';
+				return null;
+			}
+			$tried[] = $name;
+			if ( $point ) {
+				$data = array(
+					'lat' => $point['lat'],
+					'lng' => $point['lng'],
+				);
+				if ( $known ) {
+					Destinations::update( $known, $data, false );
+					return array( 'destination' => $known, 'day' => $n['day'] );
+				}
+				$new = Destinations::create( $name, $data );
+				if ( ! is_wp_error( $new ) ) {
+					return array( 'destination' => $new, 'day' => $n['day'] );
 				}
 			}
 		}
+		$why = $tried ? 'prövade ' . implode( ', ', array_slice( $tried, 0, 8 ) ) : 'inga ortnamn i dagsprogrammet';
 		return null;
 	}
 
@@ -372,6 +423,9 @@ final class Automation {
 				}
 				if ( 'none' === $t['how'] ) {
 					$missing = true;
+					if ( preg_match( '/\((.+)\)$/u', $t['check'], $m ) ) {
+						$note = ' (' . $m[1] . ')';
+					}
 				}
 				$lines[] = '• ' . $t['title'] . ' (' . $cat . ') → ' . $dest . $note . "\n  " . $t['url'];
 			}

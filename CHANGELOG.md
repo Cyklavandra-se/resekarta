@@ -1,5 +1,11 @@
 # Ändringslogg – Resekarta
 
+## 1.0.5
+- **Bättre automatisk destination från dagsprogrammet.** Ortnamn som förekommer flera dagar prövas först (t.ex. Potsdam på dag 1, 2 och 6), kommatecken skiljer ortnamn ("Caputh, Petzow" är två orter), och bara orter och områden godtas – inte floder, sjöar eller hotell.
+- **Flaggan säger varför** ingen destination hittades: inget dagsprogram på sidan, vilka namn som prövades, eller att OpenStreetMap inte svarade.
+- **Nytt försök av sig självt:** resor som fortfarande saknar destination prövas igen vid nästa körning (natt, publicering eller "Sök efter nya resor nu").
+- Knappen **Hämta koordinater** på destinationssidan slår upp namnet (eller sökordet) direkt.
+
 ## 1.0.4
 - **Bakgrundskartan försvinner inte längre.** När webbläsaren släpper kartans grafikminne (vanligast på mobil, men även på dator) blev bakgrunden tom medan resorna låg kvar – tills man bytte kartstil eller språk. Nu ritas bakgrunden om av sig själv. Händer det tre gånger på två minuter används den enklare klassiska kartan.
 - Bakgrundskartan ritas med högst dubbel upplösning, vilket ungefär halverar grafikminnet på mobiler med skarp skärm (där det här oftast hände).

@@ -120,7 +120,11 @@ final class Day_Program {
 			}
 			$parts = array( $w );
 			$j     = $i + 1;
-			while ( $j < $count ) {
+			// A comma or semicolon ends a name: "Caputh, Petzow och Werder" is three places.
+			$ends  = function ( $raw ) {
+				return (bool) preg_match( '/[,;:]$/u', $raw );
+			};
+			while ( $j < $count && ! $ends( $words[ $j - 1 ] ) ) {
 				$n = $clean( $words[ $j ] );
 				if ( $cap( $n ) && ! isset( $not_place[ self::lower( $n ) ] ) ) {
 					$parts[] = $n;
@@ -174,6 +178,53 @@ final class Day_Program {
 			},
 			$indexed
 		);
+	}
+
+	/**
+	 * Names to try, in order: names that occur on several days first (the trip's base, e.g.
+	 * "Potsdam" on day 1, 2 and 6), then the days from the middle out as in order().
+	 *
+	 * @param array[] $days From read().
+	 * @return array[] list of array( 'name' => string, 'day' => int ), each name once.
+	 */
+	public static function names_to_try( array $days ) {
+		$seen_days = array(); // name => set of days.
+		$ordered   = array();
+		foreach ( self::order( $days ) as $d ) {
+			foreach ( self::candidates( $d['title'] ) as $c ) {
+				foreach ( self::variants( $c ) as $name ) {
+					$seen_days[ $name ][ $d['day'] ] = true;
+					$ordered[]                       = array( 'name' => $name, 'day' => $d['day'] );
+				}
+			}
+		}
+		$out  = array();
+		$done = array();
+		$freq = array_filter(
+			array_map( 'count', $seen_days ),
+			function ( $n ) {
+				return $n >= 2;
+			}
+		);
+		arsort( $freq ); // Stable for equal counts since PHP 8; order among ties is not important.
+		foreach ( array_keys( $freq ) as $name ) {
+			$day = min( array_keys( $seen_days[ $name ] ) );
+			foreach ( $ordered as $o ) {
+				if ( $o['name'] === $name ) {
+					$day = $o['day'];
+					break;
+				}
+			}
+			$out[]          = array( 'name' => (string) $name, 'day' => $day );
+			$done[ $name ] = true;
+		}
+		foreach ( $ordered as $o ) {
+			if ( ! isset( $done[ $o['name'] ] ) ) {
+				$out[]               = $o;
+				$done[ $o['name'] ] = true;
+			}
+		}
+		return $out;
 	}
 
 	/** The names to look up for a candidate: "Alpernas" is tried as "Alperna" first. */

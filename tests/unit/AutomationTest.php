@@ -96,4 +96,30 @@ final class AutomationTest extends TestCase {
 		$this->assertSame( 'Kartan: något behöver kontrolleras', Automation::message( $err, array() )['subject'] );
 		$this->assertSame( 'Kartan: något behöver kontrolleras', Automation::message( $quiet, array( 'Capri' => 'hittades inte' ) )['subject'] );
 	}
+
+	public function test_names_on_several_days_first_and_commas_split() {
+		$html = '<h4>Dag 1: Ankomst till Potsdam</h4><h4>Dag 2: Potsdam runt – slott, kolonier och kvarter</h4>'
+			. '<h4>Dag 3: Havel och Wannsee – över spionbron till Gatow</h4>'
+			. '<h4>Dag 4: Templiner See och Schwielowsee – Caputh, Petzow och Werder</h4>'
+			. '<h4>Dag 5: Utflykt till Berlin</h4><h4>Dag 6: Hemresa från Potsdam</h4>';
+		$names = array_column( Day_Program::names_to_try( Day_Program::read( $html ) ), 'name' );
+		$this->assertSame( 'Potsdam', $names[0] );
+		$this->assertContains( 'Caputh', $names );
+		$this->assertContains( 'Petzow', $names );
+		$this->assertNotContains( 'Caputh Petzow', $names );
+		$this->assertSame( count( $names ), count( array_unique( $names ) ) );
+		$this->assertSame( 'Gatow', $names[1] ); // Then the middle days as before (goal of day 3 first).
+	}
+
+	public function test_day_programme_lookups_only_accept_towns_and_areas() {
+		$json = json_encode(
+			array(
+				array( 'lat' => '52.47', 'lon' => '12.81', 'category' => 'waterway', 'type' => 'river', 'addresstype' => 'river', 'display_name' => 'Havel' ),
+				array( 'lat' => '52.40', 'lon' => '13.05', 'category' => 'boundary', 'type' => 'administrative', 'addresstype' => 'city', 'display_name' => 'Potsdam' ),
+			)
+		);
+		$this->assertSame( 52.47, Geocoder::parse_nominatim( $json )['lat'] );
+		$this->assertSame( 52.4, Geocoder::parse_nominatim( $json, true )['lat'] );
+		$this->assertNull( Geocoder::parse_nominatim( json_encode( array( array( 'lat' => '1', 'lon' => '2', 'category' => 'waterway', 'type' => 'river' ) ) ), true ) );
+	}
 }

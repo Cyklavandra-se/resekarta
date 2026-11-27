@@ -30,28 +30,28 @@ final class Geocoder {
 	 * @return array|null array( 'lat' => float, 'lng' => float, 'label' => string ) or null if not found.
 	 * @throws \RuntimeException When the service cannot be reached (so the caller can retry later).
 	 */
-	public static function lookup( $query ) {
+	public static function lookup( $query, $places_only = false ) {
 		$query = trim( preg_replace( '/\s+/u', ' ', (string) $query ) );
 		if ( '' === $query ) {
 			return null;
 		}
-		$pre = apply_filters( 'cvrk_pre_geocode', null, $query );
+		$pre = apply_filters( 'cvrk_pre_geocode', null, $query, $places_only );
 		if ( null !== $pre ) {
 			return false === $pre ? null : $pre;
 		}
 		$provider = (string) Settings::get( 'geocoder' );
-		$key      = self::CACHE_PREFIX . md5( $provider . '|' . self::lower( $query ) );
+		$key      = self::CACHE_PREFIX . md5( $provider . '|' . ( $places_only ? 'p|' : '' ) . self::lower( $query ) );
 		$cached   = get_transient( $key );
 		if ( is_array( $cached ) ) {
 			return empty( $cached['found'] ) ? null : $cached['result'];
 		}
 
-		$result = 'google' === $provider ? self::google( $query ) : self::nominatim( $query );
+		$result = 'google' === $provider ? self::google( $query, $places_only ) : self::nominatim( $query, $places_only );
 		set_transient( $key, array( 'found' => null !== $result, 'result' => $result ), null !== $result ? 30 * DAY_IN_SECONDS : 7 * DAY_IN_SECONDS );
 		return $result;
 	}
 
-	private static function nominatim( $query ) {
+	private static function nominatim( $query, $places_only = false ) {
 		self::wait_turn();
 		$contact = (string) Settings::get( 'geocode_contact' );
 		$url     = add_query_arg(
@@ -75,10 +75,10 @@ final class Geocoder {
 		if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
 			throw new \RuntimeException( 'OpenStreetMap svarade inte (' . ( is_wp_error( $res ) ? $res->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code( $res ) ) . ').' );
 		}
-		return self::parse_nominatim( wp_remote_retrieve_body( $res ) );
+		return self::parse_nominatim( wp_remote_retrieve_body( $res ), $places_only );
 	}
 
-	private static function google( $query ) {
+	private static function google( $query, $places_only = false ) {
 		$key = (string) Settings::get( 'google_key' );
 		if ( '' === $key ) {
 			throw new \RuntimeException( 'Google Geocoding är valt men nyckeln saknas (Resekarta → Inställningar).' );
@@ -99,11 +99,15 @@ final class Geocoder {
 		if ( is_array( $data ) && isset( $data['status'] ) && ! in_array( $data['status'], array( 'OK', 'ZERO_RESULTS' ), true ) ) {
 			throw new \RuntimeException( 'Google Geocoding: ' . $data['status'] . ( isset( $data['error_message'] ) ? ' – ' . $data['error_message'] : '' ) );
 		}
-		return self::parse_google( wp_remote_retrieve_body( $res ) );
+		return self::parse_google( wp_remote_retrieve_body( $res ), $places_only );
 	}
 
-	/** First usable result from a Nominatim answer (jsonv2). Pure. */
-	public static function parse_nominatim( $json ) {
+	/**
+	 * First usable result from a Nominatim answer (jsonv2). Pure.
+	 * $places_only: only settlements and areas (category place/boundary) – not rivers, lakes,
+	 * hotels … Used for names from the day programme, where "Havel" should not win over a town.
+	 */
+	public static function parse_nominatim( $json, $places_only = false ) {
 		$list = json_decode( (string) $json, true );
 		if ( ! is_array( $list ) ) {
 			return null;
@@ -117,6 +121,9 @@ final class Geocoder {
 			if ( in_array( $class, self::NOT_PLACE_CLASSES, true ) || in_array( $type, self::NOT_PLACE_TYPES, true ) ) {
 				continue;
 			}
+			if ( $places_only && ! in_array( $class, array( 'place', 'boundary' ), true ) ) {
+				continue;
+			}
 			return array(
 				'lat'   => round( (float) $r['lat'], 4 ),
 				'lng'   => round( (float) $r['lon'], 4 ),
@@ -127,13 +134,17 @@ final class Geocoder {
 	}
 
 	/** First usable result from a Google Geocoding answer. Pure. */
-	public static function parse_google( $json ) {
+	public static function parse_google( $json, $places_only = false ) {
 		$data = json_decode( (string) $json, true );
 		if ( ! is_array( $data ) || empty( $data['results'] ) ) {
 			return null;
 		}
 		foreach ( $data['results'] as $r ) {
-			if ( array_intersect( isset( $r['types'] ) ? (array) $r['types'] : array(), self::NOT_PLACE_TYPES ) ) {
+			$types = isset( $r['types'] ) ? (array) $r['types'] : array();
+			if ( array_intersect( $types, self::NOT_PLACE_TYPES ) ) {
+				continue;
+			}
+			if ( $places_only && ! preg_grep( '/^(locality|sublocality|postal_town|neighborhood|colloquial_area|administrative_area_level_\d|country|archipelago)$/', $types ) ) {
 				continue;
 			}
 			if ( ! isset( $r['geometry']['location']['lat'], $r['geometry']['location']['lng'] ) ) {
