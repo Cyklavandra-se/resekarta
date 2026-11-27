@@ -500,6 +500,27 @@
     .legend { width: 100%; order: 2; margin-left: 0; }
     .chip { padding: 7px 12px; font-size: 13px; min-height: 38px; }
     .leaflet-popup-content { width: min(240px, var(--pc-w, 240px)) !important; }
+
+    /* Mobile: compact filters, so the map gets most of the height. */
+    .map-wrap { min-height: 55vh; }
+    .topbar { padding: 8px 10px 10px; gap: 6px 8px; }
+    .topbar h1 { display: none; }
+    .divider { display: none; }
+    .filter-group { gap: 5px; }
+    .chip { padding: 5px 10px; font-size: 13px; min-height: 34px; gap: 6px; }
+    .chip .count { font-size: 12px; }
+    .select { min-height: 32px; padding: 5px 26px 5px 10px; font-size: 13px; }
+    /* The small filters on one row that scrolls sideways. */
+    .filter-group.flaggor {
+      flex-wrap: nowrap; overflow-x: auto; width: 100%; padding-bottom: 2px;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    }
+    .filter-group.flaggor::-webkit-scrollbar { display: none; }
+    .chip--sm { flex: 0 0 auto; padding: 4px 10px; min-height: 32px; font-size: 12.5px; }
+    .reset-filters { padding: 2px 4px; }
+    /* Reset view in the top right corner, so it does not cover the style and language box. */
+    .reset-btn { top: 10px; bottom: auto; right: 10px; padding: 7px 10px; min-height: 34px; font-size: 12.5px; }
+    .stilval { left: 10px; bottom: 24px; padding: 6px 8px; gap: 6px; max-width: calc(100% - 20px); }
   }
   @media (max-height: 720px) {
     .pc__image { aspect-ratio: 2/1; }
@@ -596,7 +617,7 @@
 
     <div class="divider" aria-hidden="true"></div>
 
-    <div class="filter-group" role="group" aria-label="Övriga filter">
+    <div class="filter-group flaggor" role="group" aria-label="Övriga filter">
       <button class="chip chip--sm" data-flag="dog" aria-pressed="false" data-i18n="hund">Hundvänligt</button>
       <button class="chip chip--sm" data-flag="train" aria-pressed="false" data-i18n="tag">Tåg</button>
       <button class="chip chip--sm" data-flag="wine" aria-pressed="false" data-i18n="vin">Vin</button>
