@@ -156,6 +156,51 @@
 			.always(function () { spinner.removeClass('is-active'); q.find('button').prop('disabled', false); });
 	});
 
+	/* ───────────── Destinations: "Hämta koordinater" in the visitor's own browser ─────────────
+	   The web host shares its IP address with many sites, and OpenStreetMap often refuses it.
+	   From the browser the lookup comes from Pär's own connection. If it cannot be done here
+	   (no network, blocked), the form is sent and the server tries (with Photon as reserve). */
+	var NOT_PLACE = ['highway', 'building', 'amenity', 'shop', 'office', 'craft', 'emergency', 'railway', 'aeroway'];
+	$(document).on('click', 'button[name="cvrk_lookup"]', function (e) {
+		var btn = $(this);
+		if (btn.data('server')) { return; } // Second click after a failed browser lookup: let the server try.
+		e.preventDefault();
+		var form = btn.closest('form');
+		var q = $.trim(form.find('#cvrk-dest-kw').val()) || $.trim(form.find('#cvrk-dest-name').val());
+		var out = form.find('.cvrk-lookup-result');
+		if (!out.length) { out = $('<span class="cvrk-lookup-result" aria-live="polite"></span>').insertAfter(btn.siblings('.cvrk-clear-point')); }
+		if (!q) { out.text(C.texts.lookupEmpty).addClass('cvrk-warn'); return; }
+		btn.prop('disabled', true);
+		out.removeClass('cvrk-warn cvrk-yes').text(C.texts.lookupBusy);
+		$.ajax({
+			url: 'https://nominatim.openstreetmap.org/search',
+			data: { format: 'jsonv2', limit: 5, 'accept-language': 'sv', q: q },
+			dataType: 'json',
+			timeout: 15000
+		}).done(function (list) {
+			var hit = null;
+			$.each(list || [], function (i, r) {
+				var cls = r.category || r['class'] || '';
+				var typ = r.addresstype || r.type || '';
+				if (NOT_PLACE.indexOf(cls) >= 0 || ['road', 'house', 'house_number', 'postcode', 'building'].indexOf(typ) >= 0) { return; }
+				hit = r;
+				return false;
+			});
+			if (!hit) {
+				out.text(C.texts.lookupNone.replace('%s', q)).addClass('cvrk-warn');
+				return;
+			}
+			var wrap = btn.closest('.cvrk-point');
+			wrap.find('.cvrk-lat').val(Math.round(hit.lat * 1e4) / 1e4);
+			wrap.find('.cvrk-lng').val(Math.round(hit.lon * 1e4) / 1e4).trigger('change');
+			out.text(C.texts.lookupFound.replace('%s', hit.display_name)).addClass('cvrk-yes');
+		}).fail(function () {
+			// Blocked or offline here: let the server try instead.
+			btn.data('server', 1).prop('disabled', false);
+			btn.trigger('click');
+		}).always(function () { btn.prop('disabled', false); });
+	});
+
 	/* ───────────── Destinations: confirm delete ───────────── */
 	$(document).on('submit', '.cvrk-delete-dest', function (e) {
 		if (!window.confirm(C.texts.confirmDel)) { e.preventDefault(); }

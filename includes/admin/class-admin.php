@@ -511,6 +511,10 @@ final class Admin {
 					'noMatch'     => 'Ingen regel passar – dagsprogrammet prövas sedan.',
 					'match'       => 'Regel %1$s: "%2$s" → %3$s',
 					'checked'     => 'Markerad som kontrollerad.',
+					'lookupBusy'  => 'Söker …',
+					'lookupEmpty' => 'Skriv ett namn först.',
+					'lookupNone'  => 'Hittade ingen plats som heter "%s". Skriv ett sökord (t.ex. "Potsdam, Tyskland") eller klicka på kartan.',
+					'lookupFound' => 'Hittade: %s. Kontrollera punkten på kartan och klicka Spara.',
 				),
 			)
 		);

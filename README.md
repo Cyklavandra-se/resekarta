@@ -75,7 +75,8 @@ Varje natt omkring kl 03 (och ett par minuter efter att du publicerat en ny sven
    ("Dag 4 – Sorteny"; dagarna i mitten av resan prövas först). En destination från dagsprogrammet är en
    gissning och flaggas **Kontrollera**. Hittas ingen destination flaggas resan och visas inte på kartan förrän
    du valt en.
-3. Destinationer som saknar koordinater slås upp hos OpenStreetMap – bara de som en resa behöver.
+3. Destinationer som saknar koordinater slås upp hos OpenStreetMap (med Photon som reserv när OpenStreetMap
+   spärrar webbhotellet) – bara de som en resa behöver.
    Även de flaggas Kontrollera.
 4. Kartan byggs om.
 
