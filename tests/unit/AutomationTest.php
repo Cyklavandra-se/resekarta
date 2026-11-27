@@ -122,4 +122,20 @@ final class AutomationTest extends TestCase {
 		$this->assertSame( 52.4, Geocoder::parse_nominatim( $json, true )['lat'] );
 		$this->assertNull( Geocoder::parse_nominatim( json_encode( array( array( 'lat' => '1', 'lon' => '2', 'category' => 'waterway', 'type' => 'river' ) ) ), true ) );
 	}
+
+	public function test_photon_only_accepts_the_same_name() {
+		$f = function ( $name, $key, $value, $lon, $lat, $country = 'X' ) {
+			return array( 'type' => 'Feature', 'properties' => array( 'name' => $name, 'osm_key' => $key, 'osm_value' => $value, 'type' => 'city', 'country' => $country ), 'geometry' => array( 'coordinates' => array( $lon, $lat ) ) );
+		};
+		$json = json_encode( array( 'features' => array( $f( 'Sorrento', 'place', 'town', 14.37, 40.62, 'Italia' ), $f( 'Sorbey', 'place', 'village', 6.3, 49.0 ) ) ) );
+		$this->assertNull( Geocoder::parse_photon( $json, 'Sorteny' ) ); // Similar names are not accepted.
+
+		$json = json_encode( array( 'features' => array( $f( 'Havel', 'waterway', 'river', 12.8, 52.4 ), $f( 'Potsdam', 'place', 'city', 13.0591397, 52.4009309, 'Deutschland' ) ) ) );
+		$this->assertSame( 52.4009, Geocoder::parse_photon( $json, 'Potsdam', true )['lat'] );
+		$this->assertSame( 'Potsdam, Deutschland', Geocoder::parse_photon( $json, 'potsdam, Tyskland' )['label'] );
+
+		$json = json_encode( array( 'features' => array( $f( 'Ammarnäs', 'place', 'village', 16.2, 65.96 ) ) ) );
+		$this->assertNotNull( Geocoder::parse_photon( $json, 'Ammarnas' ) ); // Accents ignored.
+		$this->assertNull( Geocoder::parse_photon( 'trasigt', 'x' ) );
+	}
 }

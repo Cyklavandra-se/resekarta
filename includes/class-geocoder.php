@@ -46,9 +46,108 @@ final class Geocoder {
 			return empty( $cached['found'] ) ? null : $cached['result'];
 		}
 
-		$result = 'google' === $provider ? self::google( $query, $places_only ) : self::nominatim( $query, $places_only );
+		if ( 'google' === $provider ) {
+			$result = self::google( $query, $places_only );
+		} elseif ( 'photon' === $provider ) {
+			$result = self::photon( $query, $places_only );
+		} else {
+			$result = self::nominatim_with_reserve( $query, $places_only );
+		}
 		set_transient( $key, array( 'found' => null !== $result, 'result' => $result ), null !== $result ? 30 * DAY_IN_SECONDS : 7 * DAY_IN_SECONDS );
 		return $result;
+	}
+
+	/**
+	 * Nominatim, with Photon as reserve. Nominatim often refuses requests from shared web hosts
+	 * (many sites behind one IP address – cyklavandra.se got HTTP 629); it is then paused for an
+	 * hour and Photon is asked instead.
+	 */
+	private static function nominatim_with_reserve( $query, $places_only ) {
+		$first = '';
+		if ( ! get_transient( 'cvrk_geo_nominatim_paused' ) ) {
+			try {
+				return self::nominatim( $query, $places_only );
+			} catch ( \RuntimeException $e ) {
+				$first = $e->getMessage();
+				set_transient( 'cvrk_geo_nominatim_paused', $first, HOUR_IN_SECONDS );
+			}
+		}
+		try {
+			return self::photon( $query, $places_only );
+		} catch ( \RuntimeException $e ) {
+			throw new \RuntimeException( trim( ( '' !== $first ? $first : (string) get_transient( 'cvrk_geo_nominatim_paused' ) ) . ' ' . $e->getMessage() ) );
+		}
+	}
+
+	private static function photon( $query, $places_only = false ) {
+		$url = add_query_arg(
+			array(
+				'q'     => rawurlencode( $query ),
+				'limit' => 5,
+			),
+			'https://photon.komoot.io/api/'
+		);
+		$res = wp_remote_get(
+			$url,
+			array(
+				'timeout'    => 15,
+				'user-agent' => 'Resekarta/' . VERSION . ' (' . untrailingslashit( (string) get_option( 'home' ) ) . ')',
+			)
+		);
+		if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+			throw new \RuntimeException( 'Photon svarade inte (' . ( is_wp_error( $res ) ? $res->get_error_message() : 'HTTP ' . wp_remote_retrieve_response_code( $res ) ) . ').' );
+		}
+		return self::parse_photon( wp_remote_retrieve_body( $res ), $query, $places_only );
+	}
+
+	/**
+	 * First usable result from a Photon answer (GeoJSON). Pure.
+	 * Photon also returns similar names ("Sorteny" → Sorrento), so the name must match the query
+	 * (the part before a comma: "Potsdam, Tyskland" matches Potsdam), ignoring case and accents.
+	 */
+	public static function parse_photon( $json, $query, $places_only = false ) {
+		$data = json_decode( (string) $json, true );
+		if ( ! is_array( $data ) || empty( $data['features'] ) ) {
+			return null;
+		}
+		$wanted = self::plain( strtok( (string) $query, ',' ) );
+		foreach ( $data['features'] as $f ) {
+			$p = isset( $f['properties'] ) ? $f['properties'] : array();
+			$c = isset( $f['geometry']['coordinates'] ) ? $f['geometry']['coordinates'] : null;
+			if ( ! is_array( $c ) || count( $c ) < 2 || empty( $p['name'] ) ) {
+				continue;
+			}
+			$key  = isset( $p['osm_key'] ) ? $p['osm_key'] : '';
+			$type = isset( $p['type'] ) ? $p['type'] : '';
+			if ( in_array( $key, self::NOT_PLACE_CLASSES, true ) || in_array( $type, array( 'street', 'house' ), true ) ) {
+				continue;
+			}
+			if ( $places_only && ! in_array( $key, array( 'place', 'boundary' ), true ) ) {
+				continue;
+			}
+			if ( self::plain( $p['name'] ) !== $wanted ) {
+				continue;
+			}
+			$label = implode( ', ', array_filter( array( $p['name'], isset( $p['state'] ) ? $p['state'] : '', isset( $p['country'] ) ? $p['country'] : '' ) ) );
+			return array(
+				'lat'   => round( (float) $c[1], 4 ),
+				'lng'   => round( (float) $c[0], 4 ),
+				'label' => $label,
+			);
+		}
+		return null;
+	}
+
+	/** Lower case without accents, for comparing names. */
+	private static function plain( $s ) {
+		$s = self::lower( trim( (string) $s ) );
+		if ( function_exists( 'transliterator_transliterate' ) ) {
+			$t = transliterator_transliterate( 'NFD; [:Nonspacing Mark:] Remove; NFC', $s );
+			if ( false !== $t ) {
+				$s = $t;
+			}
+		}
+		return preg_replace( '/\s+/u', ' ', $s );
 	}
 
 	private static function nominatim( $query, $places_only = false ) {

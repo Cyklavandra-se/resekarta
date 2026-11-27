@@ -1,5 +1,10 @@
 # Ändringslogg – Resekarta
 
+## 1.0.6
+- **Platsuppslag fungerar även när OpenStreetMap spärrar webbhotellet.** OpenStreetMap (Nominatim) vägrar ofta förfrågningar från delade webbhotell (cyklavandra.se fick HTTP 629). Då används **Photon** som reserv – också gratis och byggd på OpenStreetMap – och OpenStreetMap pausas en timme. Photon godtas bara när namnet stämmer (inte "Sorrento" för "Sorteny").
+- Knappen **Hämta koordinater** gör uppslaget i din egen webbläsare och fyller i punkten – kontrollera den på kartan och klicka Spara. Går det inte därifrån försöker servern.
+- Photon kan också väljas som enda tjänst under Inställningar.
+
 ## 1.0.5
 - **Bättre automatisk destination från dagsprogrammet.** Ortnamn som förekommer flera dagar prövas först (t.ex. Potsdam på dag 1, 2 och 6), kommatecken skiljer ortnamn ("Caputh, Petzow" är två orter), och bara orter och områden godtas – inte floder, sjöar eller hotell.
 - **Flaggan säger varför** ingen destination hittades: inget dagsprogram på sidan, vilka namn som prövades, eller att OpenStreetMap inte svarade.

@@ -22,7 +22,8 @@ final class Settings {
 	);
 
 	const GEOCODERS = array(
-		'nominatim' => 'OpenStreetMap Nominatim (gratis)',
+		'nominatim' => 'OpenStreetMap Nominatim, med Photon som reserv (gratis)',
+		'photon'    => 'Photon (gratis, bygger på OpenStreetMap)',
 		'google'    => 'Google Geocoding (kräver nyckel)',
 	);
 
